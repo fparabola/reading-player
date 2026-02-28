@@ -34,35 +34,70 @@
         }
 
         .subtitle-container {
-            width: 90%;
-            max-width: 1200px;
-            height: 80%;
+            width: 95%;
+            max-width: 1400px;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 20px;
+            gap: 12px;
             text-align: center;
+            padding: 20px 0;
             transition: all 0.3s ease;
+            overflow-y: auto; /* 添加垂直滚动 */
+            overflow-x: hidden;
+        }
+
+        /* 自定义滚动条样式 */
+        .subtitle-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .subtitle-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .subtitle-container::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 3px;
+        }
+
+        .subtitle-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.8);
         }
 
         .sentence-display {
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            min-height: 60%;
+            gap: 10px;
+            flex: 1;
+            justify-content: center;
+            min-height: 0;
         }
 
         .subtitle-line {
-            font-size: clamp(20px, 4vw, 32px);
+            font-size: clamp(18px, 3.5vw, 30px);
             font-weight: 700;
             color: #fff;
-            line-height: 1.5;
+            line-height: 1.4;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
             opacity: 0;
             transform: translateY(20px);
-            animation: fadeInUp 0.5s ease forwards;
+            animation: fadeInUp 0.4s ease forwards;
+            word-wrap: break-word; /* 允许长单词换行 */
+            overflow-wrap: break-word;
+            hyphens: auto; /* 自动断字 */
+            max-width: 100%; /* 确保不超出容器 */
+        }
+
+        /* 当句子很长时显示省略号 */
+        .subtitle-line.truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         @keyframes fadeInUp {
@@ -79,7 +114,31 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
+        }
+
+        /* 书籍章节选择 */
+        .book-select-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .book-select-section select {
+            padding: 10px 15px;
+            background: #2a2a4e;
+            color: #eee;
+            border: 1px solid #444;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 150px;
+        }
+
+        .book-select-section select:hover {
+            border-color: #667eea;
         }
 
         .progress-info {
@@ -114,7 +173,7 @@
         }
 
         .btn {
-            padding: 12px 24px;
+            padding: 12px 20px;
             border: none;
             border-radius: 8px;
             font-size: 16px;
@@ -166,40 +225,6 @@
 
         .btn-danger:hover:not(:disabled) {
             background: #c82333;
-        }
-
-        /* 文件上传 */
-        .upload-section {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .file-input-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-        }
-
-        .file-input-wrapper input[type="file"] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-
-        .selected-file {
-            font-size: 14px;
-            color: #888;
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
         /* 播放速度控制 */
@@ -267,15 +292,49 @@
             font-size: 18px;
         }
 
+        /* 章节导航按钮 */
+        .chapter-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chapter-nav-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        /* 当前章节显示 */
+        .current-chapter {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
         /* 响应式 */
         @media (max-width: 768px) {
             .btn {
                 padding: 10px 16px;
                 font-size: 14px;
             }
-
             .subtitle-line {
-                font-size: clamp(16px, 5vw, 24px);
+                font-size: clamp(16px, 4.5vw, 22px);
+                line-height: 1.3;
+            }
+            .subtitle-container {
+                width: 98%;
+                padding: 15px 0;
+                gap: 8px;
+            }
+            .book-select-section select {
+                min-width: 120px;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .subtitle-line {
+                font-size: clamp(14px, 5vw, 20px);
             }
         }
     </style>
@@ -289,8 +348,8 @@
                     <path d="M9 19V6l12 7-12 7z"/>
                     <path d="M3 6v12l12-7-12-7z" style="opacity:0.5"/>
                 </svg>
-                <p>请选择文本文件开始播放</p>
-                <p style="font-size: 14px;">Please select a text file to start playing</p>
+                <p>请选择书籍和章节开始播放</p>
+                <p style="font-size: 14px;">Please select a book and chapter to start playing</p>
             </div>
             <div class="sentence-display" id="sentenceDisplay"></div>
         </div>
@@ -298,8 +357,37 @@
 
     <!-- 控制区域 -->
     <div class="controls-section">
+        <!-- 书籍章节选择 -->
+        <div class="book-select-section">
+            <select id="bookSelect" onchange="onBookChange()">
+                <option value="">-- 选择书籍 Select Book --</option>
+            </select>
+            <select id="chapterSelect" onchange="onChapterChange()" disabled>
+                <option value="">-- 选择章节 Select Chapter --</option>
+            </select>
+            <button class="btn btn-primary" onclick="loadChapter()" id="btnLoad" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                加载 Load
+            </button>
+        </div>
+
+        <!-- 章节导航 -->
+        <div class="chapter-nav" id="chapterNav" style="display: none;">
+            <button class="btn btn-secondary chapter-nav-btn" onclick="prevChapter()" id="btnPrevChapter" disabled>
+                ◀ 上一章
+            </button>
+            <span class="current-chapter" id="currentChapter"></span>
+            <button class="btn btn-secondary chapter-nav-btn" onclick="nextChapter()" id="btnNextChapter" disabled>
+                下一章 ▶
+            </button>
+        </div>
+
         <!-- 进度信息 -->
-        <div class="progress-info" id="progressInfo">未加载文件 | Not loaded</div>
+        <div class="progress-info" id="progressInfo">未加载 | Not loaded</div>
 
         <!-- 进度条 -->
         <div class="progress-bar" id="progressBar">
@@ -316,23 +404,6 @@
 
         <!-- 控制按钮 -->
         <div class="control-buttons">
-            <!-- 文件上传 -->
-            <div class="upload-section">
-                <div class="file-input-wrapper">
-                    <button class="btn btn-primary">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        选择文件 Select File
-                    </button>
-                    <input type="file" id="fileInput" accept=".txt" onchange="handleFile(event)">
-                </div>
-                <span class="selected-file" id="selectedFile">未选择文件</span>
-            </div>
-
-            <!-- 播放控制 -->
             <button class="btn btn-secondary" onclick="gotoBeginning()" id="btnBeginning" disabled>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="19 20 9 12 19 4 19 20"/>
@@ -367,97 +438,399 @@
 
     <script>
         const API_URL = 'http://localhost:8000';
-        const MAX_SENTENCES_PAGE = 5;
+        const DEFAULT_MIN_SIZE = 500; // 默认获取的文本最小长度
 
-        let allSentences = [];
-        let currentPage = 0;
+        let currentBook = '';
+        let currentChapter = '';
+        let currentPosition = 0;
+        let chapterEndPosition = 0;
+        let currentSentences = [];
+        let currentSentenceIndex = 0;
+        let maxSentencesPerPage = 5;
         let isPlaying = false;
         let playInterval = null;
-        let playSpeed = 2000; // 毫秒
-        let maxSentencesPerPage = MAX_SENTENCES_PAGE;
+        let playSpeed = 2000;
+        let bookChapters = []; // 存储当前书的章节列表
 
         // 初始化最大句子数
         function initMaxSentences() {
             const windowHeight = window.innerHeight * 0.5;
-            const fontSize = Math.max(20, windowHeight / 15);
-            maxSentencesPerPage = Math.floor((windowHeight * 0.6) / (fontSize * 1.8));
-            maxSentencesPerPage = Math.max(3, Math.min(8, maxSentencesPerPage));
+            const windowWidth = window.innerWidth;
+            // 更精确的字体大小计算（基于CSS中的clamp值）
+            let fontSize;
+            if (windowWidth <= 480) {
+                fontSize = Math.max(14, Math.min(20, windowWidth * 0.05));
+            } else if (windowWidth <= 768) {
+                fontSize = Math.max(16, Math.min(22, windowWidth * 0.045));
+            } else {
+                fontSize = Math.max(18, Math.min(30, windowWidth * 0.035));
+            }
+            // 每行高度（字体大小 + 行间距）
+            const lineHeight = fontSize * 1.4;
+            // 容器可用高度（减去padding）
+            const availableHeight = windowHeight * 0.9;
+            // 计算可显示的行数
+            const maxLines = Math.floor(availableHeight / lineHeight / 1.2);
+            // 考虑padding和gap
+            maxSentencesPerPage = Math.max(2, Math.min(10, maxLines));
         }
 
         initMaxSentences();
         window.addEventListener('resize', () => {
             initMaxSentences();
-            if (allSentences.length > 0) displayPage(currentPage);
+            if (currentSentences.length > 0) displaySentences();
         });
 
-        // 处理文件选择
-        async function handleFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // 页面加载时获取书籍列表
+        window.addEventListener('DOMContentLoaded', loadBooks);
 
-            document.getElementById('selectedFile').textContent = file.name;
-            showLoading(true);
-            clearError();
+        // 加载书籍列表
+        async function loadBooks() {
+            try {
+                const response = await fetch(`${API_URL}/books/list`);
+                if (!response.ok) throw new Error('获取书籍列表失败');
+
+                const data = await response.json();
+                const bookSelect = document.getElementById('bookSelect');
+                bookSelect.innerHTML = '<option value="">-- 选择书籍 Select Book --</option>';
+
+                data.books.forEach(book => {
+                    const option = document.createElement('option');
+                    option.value = book;
+                    option.textContent = book;
+                    bookSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('加载书籍失败:', error);
+                showError('加载书籍列表失败，请确保服务已启动');
+            }
+        }
+
+        // 书籍改变时加载章节列表
+        async function onBookChange() {
+            const bookSelect = document.getElementById('bookSelect');
+            currentBook = bookSelect.value;
+            const chapterSelect = document.getElementById('chapterSelect');
+            const btnLoad = document.getElementById('btnLoad');
+
+            chapterSelect.innerHTML = '<option value="">-- 选择章节 Select Chapter --</option>';
+            chapterSelect.disabled = true;
+            btnLoad.disabled = true;
+
+            if (!currentBook) return;
 
             try {
-                const text = await readFile(file);
-                const sentences = await splitText(text);
-                allSentences = sentences;
-                currentPage = 0;
+                const response = await fetch(`${API_URL}/chapter/${encodeURIComponent(currentBook)}`);
+                if (!response.ok) throw new Error('获取章节列表失败');
 
-                updateUIState();
-                displayPage(currentPage);
+                const data = await response.json();
+                bookChapters = data.chapters;
+
+                bookChapters.forEach(chapter => {
+                    const option = document.createElement('option');
+                    option.value = chapter.name;
+                    option.textContent = chapter.name;
+                    chapterSelect.appendChild(option);
+                });
+
+                chapterSelect.disabled = false;
+                btnLoad.disabled = false;
             } catch (error) {
-                showError('加载文件失败: ' + error.message);
+                console.error('加载章节失败:', error);
+                showError('加载章节列表失败');
+            }
+        }
+
+        // 章节改变时
+        function onChapterChange() {
+            const chapterSelect = document.getElementById('chapterSelect');
+            currentChapter = chapterSelect.value;
+        }
+
+        // 加载章节
+        async function loadChapter() {
+            if (!currentBook || !currentChapter) {
+                showError('请先选择书籍和章节');
+                return;
+            }
+
+            showLoading(true);
+            clearError();
+            currentPosition = 0;
+            currentSentences = [];
+            currentSentenceIndex = 0;
+            isPlaying = false;
+            if (playInterval) clearInterval(playInterval);
+
+            try {
+                // 获取章节内容
+                const content = await fetchChapterContent(currentBook, currentChapter, currentPosition);
+                chapterEndPosition = content.end_position;
+
+                // 分句
+                const sentences = await splitText(content.text);
+                if (sentences.length === 0) {
+                    showError('章节内容为空');
+                    showLoading(false);
+                    return;
+                }
+
+                currentSentences = sentences;
+                currentSentenceIndex = 0;
+
+                // 更新UI
+                document.getElementById('chapterNav').style.display = 'flex';
+                document.getElementById('currentChapter').textContent = currentChapter.replace('.txt', '');
+                updateChapterNav();
+
+                displaySentences();
+                updatePlayButtons();
+
+                // 更新播放按钮图标
+                document.getElementById('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+                document.getElementById('btnPlay').classList.add('btn-success');
+                document.getElementById('btnPlay').classList.remove('btn-danger');
+
+            } catch (error) {
+                showError('加载章节失败: ' + error.message);
             } finally {
                 showLoading(false);
             }
         }
 
-        // 读取文件内容
-        function readFile(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target.result);
-                reader.onerror = (e) => reject(e);
-                reader.readAsText(file, 'UTF-8');
-            });
+        // 获取章节内容
+        async function fetchChapterContent(book, chapter, position) {
+            const minSize = DEFAULT_MIN_SIZE;
+            const url = `${API_URL}/chapter/${encodeURIComponent(book)}/${encodeURIComponent(chapter)}?position=${position}&min_size=${minSize}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('获取章节内容失败');
+            return await response.json();
         }
 
-        // 调用分句API
+        // 分句
         async function splitText(text) {
-            try {
-                const response = await fetch(`${API_URL}/split`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: text,
-                        language: 'en',
-                        method: 'r'
-                    })
-                });
+            const response = await fetch(`${API_URL}/split`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text: text,
+                    language: 'en',
+                    method: 'r'
+                })
+            });
+            if (!response.ok) throw new Error('分句失败');
+            const data = await response.json();
+            return data.sentences || [];
+        }
 
-                if (!response.ok) {
-                    throw new Error('服务器响应错误');
-                }
+        // 显示当前页句子
+        function displaySentences() {
+            const emptyState = document.getElementById('emptyState');
+            const sentenceDisplay = document.getElementById('sentenceDisplay');
 
-                const data = await response.json();
-                return data.sentences || [];
-            } catch (error) {
-                console.warn('API调用失败，使用本地分句:', error);
-                return splitLocal(text);
+            if (currentSentences.length === 0) {
+                emptyState.style.display = 'flex';
+                sentenceDisplay.innerHTML = '';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            // 显示下maxSentencesPerPage个句子
+            const endIndex = Math.min(currentSentenceIndex + maxSentencesPerPage, currentSentences.length);
+            const displaySentences = currentSentences.slice(currentSentenceIndex, endIndex);
+
+            sentenceDisplay.innerHTML = displaySentences.map((s, i) =>
+                `<div class="subtitle-line" style="animation-delay: ${i * 0.1}s">${escapeHtml(s)}</div>`
+            ).join('');
+
+            updateProgress();
+        }
+
+        // 更新进度
+        function updateProgress() {
+            document.getElementById('progressInfo').textContent =
+                `句子${currentSentenceIndex + 1}-${Math.min(currentSentenceIndex + maxSentencesPerPage, currentSentences.length)}`;
+
+            // 进度条简单估算
+            if (chapterEndPosition > 0) {
+                const progress = Math.min(100, (currentPosition / (chapterEndPosition || 1)) * 100);
+                document.querySelector('.progress-fill').style.width = `${progress}%`;
             }
         }
 
-        // 本地分句（降级方案）
-        function splitLocal(text) {
-            const sentences = text.split(/[.!?]+/).filter(s => s.trim());
-            return sentences.map(s => s.trim() + '.');
+        // 下一页
+        async function nextPage() {
+            const nextIndex = currentSentenceIndex + maxSentencesPerPage;
+
+            if (nextIndex < currentSentences.length) {
+                // 当前还有句子，直接翻页
+                currentSentenceIndex = nextIndex;
+                displaySentences();
+            } else {
+                // 当前句子已用完，获取更多内容
+                await loadMoreContent();
+            }
+        }
+
+        // 加载更多内容
+        async function loadMoreContent() {
+            try {
+                const content = await fetchChapterContent(currentBook, currentChapter, currentPosition);
+
+                if (content.text.length === 0) {
+                    // 章节结束
+                    if (isPlaying) {
+                        pause();
+                    }
+                    return;
+                }
+
+                currentPosition = content.end_position;
+                chapterEndPosition = content.end_position;
+
+                const sentences = await splitText(content.text);
+                if (sentences.length === 0) {
+                    if (isPlaying) pause();
+                    return;
+                }
+
+                // 合并句子
+                currentSentences = [...currentSentences.slice(currentSentenceIndex), ...sentences];
+                currentSentenceIndex = 0;
+
+                displaySentences();
+
+                // 如果刚够显示不满，继续加载
+                if (currentSentences.length < maxSentencesPerPage) {
+                    await loadMoreContent();
+                }
+
+            } catch (error) {
+                console.error('加载更多内容失败:', error);
+                if (isPlaying) pause();
+            }
+        }
+
+        // 上一页
+        function previousPage() {
+            const prevIndex = currentSentenceIndex - maxSentencesPerPage;
+            if (prevIndex >= 0) {
+                currentSentenceIndex = prevIndex;
+                displaySentences();
+            } else {
+                // 已到开头
+                currentSentenceIndex = 0;
+                displaySentences();
+            }
+        }
+
+        // 跳到开头
+        function gotoBeginning() {
+            currentSentenceIndex = 0;
+            displaySentences();
+        }
+
+        // 跳到结尾
+        function gotoEnd() {
+            currentSentenceIndex = Math.max(0, currentSentences.length - maxSentencesPerPage);
+            displaySentences();
+        }
+
+        // 播放/暂停
+        function togglePlay() {
+            if (isPlaying) {
+                pause();
+            } else {
+                play();
+            }
+        }
+
+        // 播放
+        function play() {
+            if (currentSentences.length === 0) return;
+
+            isPlaying = true;
+
+            document.getElementById('playIcon').innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+            document.getElementById('btnPlay').classList.remove('btn-success');
+            document.getElementById('btnPlay').classList.add('btn-danger');
+
+            playInterval = setInterval(async () => {
+                await nextPage();
+            }, playSpeed);
+        }
+
+        // 暂停
+        function pause() {
+            isPlaying = false;
+
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+
+            document.getElementById('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+            document.getElementById('btnPlay').classList.add('btn-success');
+            document.getElementById('btnPlay').classList.remove('btn-danger');
+        }
+
+        // 设置速度
+        function setSpeed(speed) {
+            playSpeed = speed;
+
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.speed) === speed) {
+                    btn.classList.add('active');
+                }
+            });
+
+            if (isPlaying) {
+                pause();
+                play();
+            }
+        }
+
+        // 更新播放按钮状态
+        function updatePlayButtons() {
+            const hasContent = currentSentences.length > 0;
+            document.getElementById('btnPlay').disabled = !hasContent;
+            document.getElementById('btnPrev').disabled = !hasContent || currentSentenceIndex <= 0;
+            document.getElementById('btnBeginning').disabled = !hasContent || currentSentenceIndex <= 0;
+            document.getElementById('btnNext').disabled = !hasContent;
+            document.getElementById('btnEnd').disabled = !hasContent;
+        }
+
+        // 更新章节导航按钮
+        function updateChapterNav() {
+            const currentIndex = bookChapters.findIndex(c => c.name === currentChapter);
+            document.getElementById('btnPrevChapter').disabled = currentIndex <= 0;
+            document.getElementById('btnNextChapter').disabled = currentIndex >= bookChapters.length - 1 || bookChapters.length === 0;
+        }
+
+        // 上一章
+        function prevChapter() {
+            const currentIndex = bookChapters.findIndex(c => c.name === currentChapter);
+            if (currentIndex > 0) {
+                document.getElementById('chapterSelect').value = bookChapters[currentIndex - 1].name;
+                currentChapter = bookChapters[currentIndex - 1].name;
+                loadChapter();
+            }
+        }
+
+        // 下一章
+        function nextChapter() {
+            const currentIndex = bookChapters.findIndex(c => c.name === currentChapter);
+            if (currentIndex < bookChapters.length - 1) {
+                document.getElementById('chapterSelect').value = bookChapters[currentIndex + 1].name;
+                currentChapter = bookChapters[currentIndex + 1].name;
+                loadChapter();
+            }
         }
 
         // 显示加载状态
         function showLoading(show) {
-            const container = document.getElementById('subtitleContainer');
             const emptyState = document.getElementById('emptyState');
             const sentenceDisplay = document.getElementById('sentenceDisplay');
 
@@ -478,140 +851,6 @@
             document.getElementById('errorMessage').innerHTML = '';
         }
 
-        // 更新UI状态
-        function updateUIState() {
-            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
-
-            document.getElementById('progressInfo').textContent =
-                `${currentPage + 1} / ${totalPages} 页 | 共 ${allSentences.length} 句`;
-
-            const progress = ((currentPage + 1) / totalPages) * 100;
-            document.querySelector('.progress-fill').style.width = `${progress}%`;
-
-            document.getElementById('btnPlay').disabled = allSentences.length === 0;
-            document.getElementById('btnPrev').disabled = currentPage === 0;
-            document.getElementById('btnBeginning').disabled = currentPage === 0;
-            document.getElementById('btnNext').disabled = currentPage >= totalPages - 1;
-            document.getElementById('btnEnd').disabled = currentPage >= totalPages - 1;
-        }
-
-        // 显示指定页的句子
-        function displayPage(page) {
-            const emptyState = document.getElementById('emptyState');
-            const sentenceDisplay = document.getElementById('sentenceDisplay');
-
-            if (allSentences.length === 0) {
-                emptyState.style.display = 'flex';
-                sentenceDisplay.innerHTML = '';
-                return;
-            }
-
-            emptyState.style.display = 'none';
-
-            const start = page * maxSentencesPerPage;
-            const end = Math.min(start + maxSentencesPerPage, allSentences.length);
-            const pageSentences = allSentences.slice(start, end);
-
-            sentenceDisplay.innerHTML = pageSentences.map((s, i) =>
-                `<div class="subtitle-line" style="animation-delay: ${i * 0.1}s">${escapeHtml(s)}</div>`
-            ).join('');
-
-            updateUIState();
-        }
-
-        // 下一页
-        function nextPage() {
-            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
-            if (currentPage < totalPages - 1) {
-                currentPage++;
-                displayPage(currentPage);
-            } else if (isPlaying) {
-                pause();
-            }
-        }
-
-        // 上一页
-        function previousPage() {
-            if (currentPage > 0) {
-                currentPage--;
-                displayPage(currentPage);
-            }
-        }
-
-        // 跳到开头
-        function gotoBeginning() {
-            currentPage = 0;
-            displayPage(currentPage);
-        }
-
-        // 跳到结尾
-        function gotoEnd() {
-            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
-            currentPage = totalPages - 1;
-            displayPage(currentPage);
-        }
-
-        // 切换播放/暂停
-        function togglePlay() {
-            if (isPlaying) {
-                pause();
-            } else {
-                play();
-            }
-        }
-
-        // 开始播放
-        function play() {
-            if (allSentences.length === 0) return;
-
-            isPlaying = true;
-
-            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
-            if (currentPage >= totalPages - 1) {
-                currentPage = 0;
-                displayPage(currentPage);
-            }
-
-            document.getElementById('playIcon').innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
-            document.getElementById('btnPlay').classList.remove('btn-success');
-            document.getElementById('btnPlay').classList.add('btn-danger');
-
-            playInterval = setInterval(() => {
-                nextPage();
-            }, playSpeed);
-        }
-
-        // 暂停播放
-        function pause() {
-            isPlaying = false;
-
-            if (playInterval) {
-                clearInterval(playInterval);
-                playInterval = null;
-            }
-
-            document.getElementById('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
-            document.getElementById('btnPlay').classList.add('btn-success');
-            document.getElementById('btnPlay').classList.remove('btn-danger');
-        }
-
-        // 设置播放速度
-        function setSpeed(speed) {
-            playSpeed = speed;
-
-            document.querySelectorAll('.speed-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (parseInt(btn.dataset.speed) === speed) {
-                    btn.classList.add('active');
-                }
-            });
-
-            if (isPlaying) {
-                pause();
-                play();
-            }
-        }
-
         // HTML转义
         function escapeHtml(text) {
             const div = document.createElement('div');
@@ -621,17 +860,18 @@
 
         // 点击进度条跳转
         document.getElementById('progressBar').addEventListener('click', (e) => {
-            if (allSentences.length === 0) return;
+            if (currentSentences.length === 0) return;
 
             const rect = e.target.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const percent = clickX / rect.width;
 
-            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
-            currentPage = Math.floor(percent * totalPages);
-            currentPage = Math.max(0, Math.min(totalPages - 1, currentPage));
+            // 简单估算跳转位置
+            const totalSentences = Math.ceil((chapterEndPosition || 1) / 20); // 估算总句子数
+            const targetIndex = Math.floor(percent * totalSentences);
+            currentSentenceIndex = Math.max(0, Math.min(currentSentences.length - maxSentencesPerPage, targetIndex));
 
-            displayPage(currentPage);
+            displaySentences();
         });
     </script>
 </body>
