@@ -225,55 +225,40 @@
             margin-bottom: 12px;
         }
 
+        .analysis-panel {
+            width: 95%;
+            max-width: 1200px;
+            margin: 20px auto 30px;
+            padding: 16px 20px;
+            background: rgba(26, 26, 46, 0.8);
+            border: 1px solid #2c2c52;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .analysis-panel.hidden {
+            display: none;
+        }
+
+        .analysis-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .analysis-title {
+            font-size: 14px;
+            color: #bbb;
+        }
+
         .analysis-controls {
             display: flex;
             align-items: center;
             gap: 10px;
             flex-wrap: wrap;
-        }
-
-        .collapsible {
-            width: 95%;
-            max-width: 1200px;
-            margin: 12px auto;
-            border: 1px solid #2c2c52;
-            border-radius: 12px;
-            background: rgba(26, 26, 46, 0.75);
-            overflow: hidden;
-        }
-
-        .collapsible-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 10px 14px;
-            cursor: pointer;
-            background: rgba(20, 20, 34, 0.7);
-        }
-
-        .collapsible-title {
-            font-size: 14px;
-            color: #bbb;
-        }
-
-        .collapsible-toggle {
-            background: #2a2a4e;
-            color: #eee;
-            border: 1px solid #3a3a66;
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-
-        .collapsible-body {
-            padding: 12px 14px;
-            display: none;
-        }
-
-        .collapsible.open .collapsible-body {
-            display: block;
         }
 
         .analysis-title {
@@ -659,53 +644,39 @@
         <!-- 当前章节显示 -->
         <div class="chapter-nav" id="chapterNav" style="display: none;"></div>
 
-        <div class="collapsible open" id="analysisControlsPanel">
-            <div class="collapsible-header" onclick="toggleCollapse('analysisControlsPanel')">
-                <span class="collapsible-title">解析控制</span>
-                <button class="collapsible-toggle" type="button">收起</button>
+        <div class="analysis-panel" id="analysisPanel">
+            <div class="analysis-header">
+                <span class="analysis-title">句子解析</span>
             </div>
-            <div class="collapsible-body">
-                <div class="analysis-controls">
-                    <select id="analysisModelSelect" class="btn btn-secondary">
-                        <option value="Pro/zai-org/GLM-4.7">Pro/zai-org/GLM-4.7</option>
-                        <option value="deepseek-ai/DeepSeek-V3.2">deepseek-ai/DeepSeek-V3.2</option>
-                        <option value="Pro/deepseek-ai/DeepSeek-V3.2">Pro/deepseek-ai/DeepSeek-V3.2</option>
-                        <option value="zai-org/GLM-4.6">zai-org/GLM-4.6</option>
-                        <option value="Qwen/Qwen3-8B">Qwen/Qwen3-8B</option>
-                        <option value="Qwen/Qwen3-14B" selected>Qwen/Qwen3-14B</option>
-                        <option value="Qwen/Qwen3-32B">Qwen/Qwen3-32B</option>
-                        <option value="Qwen/Qwen3-30B-A3B">Qwen/Qwen3-30B-A3B</option>
-                        <option value="tencent/Hunyuan-A13B-Instruct">tencent/Hunyuan-A13B-Instruct</option>
-                        <option value="zai-org/GLM-4.5V">zai-org/GLM-4.5V</option>
-                        <option value="deepseek-ai/DeepSeek-V3.1-Terminus">deepseek-ai/DeepSeek-V3.1-Terminus</option>
-                        <option value="Pro/deepseek-ai/DeepSeek-V3.1-Terminus">Pro/deepseek-ai/DeepSeek-V3.1-Terminus</option>
-                    </select>
-                    <label class="switch">
-                        <input type="checkbox" id="autoAnalyzeToggle" onchange="toggleAutoAnalyze()">
-                        <span class="switch-slider"></span>
-                    </label>
-                    <button class="btn btn-secondary" onclick="analyzeCurrent()" id="btnAnalyze" disabled>
-                        解析当前句子
-                    </button>
-                </div>
+            <div class="analysis-controls">
+                <select id="analysisModelSelect" class="btn btn-secondary">
+                    <option value="Pro/zai-org/GLM-4.7">Pro/zai-org/GLM-4.7</option>
+                    <option value="deepseek-ai/DeepSeek-V3.2">deepseek-ai/DeepSeek-V3.2</option>
+                    <option value="Pro/deepseek-ai/DeepSeek-V3.2">Pro/deepseek-ai/DeepSeek-V3.2</option>
+                    <option value="zai-org/GLM-4.6">zai-org/GLM-4.6</option>
+                    <option value="Qwen/Qwen3-8B">Qwen/Qwen3-8B</option>
+                    <option value="Qwen/Qwen3-14B" selected>Qwen/Qwen3-14B</option>
+                    <option value="Qwen/Qwen3-32B">Qwen/Qwen3-32B</option>
+                    <option value="Qwen/Qwen3-30B-A3B">Qwen/Qwen3-30B-A3B</option>
+                    <option value="tencent/Hunyuan-A13B-Instruct">tencent/Hunyuan-A13B-Instruct</option>
+                    <option value="zai-org/GLM-4.5V">zai-org/GLM-4.5V</option>
+                    <option value="deepseek-ai/DeepSeek-V3.1-Terminus">deepseek-ai/DeepSeek-V3.1-Terminus</option>
+                    <option value="Pro/deepseek-ai/DeepSeek-V3.1-Terminus">Pro/deepseek-ai/DeepSeek-V3.1-Terminus</option>
+                </select>
+                <label class="switch">
+                    <input type="checkbox" id="autoAnalyzeToggle" onchange="toggleAutoAnalyze()">
+                    <span class="switch-slider"></span>
+                </label>
+                <button class="btn btn-secondary" onclick="analyzeCurrent()" id="btnAnalyze" disabled>
+                    解析当前句子
+                </button>
             </div>
-        </div>
-
-        <div id="errorMessage"></div>
-    </div>
-
-    <!-- 解析窗口 -->
-    <div class="collapsible" id="analysisPanel">
-        <div class="collapsible-header" onclick="toggleCollapse('analysisPanel')">
-            <span class="collapsible-title">句子解析</span>
-            <button class="collapsible-toggle" type="button">展开</button>
-        </div>
-        <div class="collapsible-body">
-            <div class="analysis-loading" id="analysisLoading" style="display:none;">解析中...</div>
             <div class="analysis-section" id="analysisMeaning">
                 <div class="analysis-content" id="analysisMeaningText">-</div>
             </div>
         </div>
+
+        <div id="errorMessage"></div>
     </div>
 
 
@@ -1347,13 +1318,6 @@ async function onBookChange() {
             });
         }
 
-        function toggleCollapse(id) {
-            const panel = document.getElementById(id);
-            if (!panel) return;
-            panel.classList.toggle('open');
-            const toggle = panel.querySelector('.collapsible-toggle');
-            if (toggle) toggle.textContent = panel.classList.contains('open') ? '收起' : '展开';
-        }
 
         function toggleTts() {
             ttsEnabled = !ttsEnabled;
@@ -1501,9 +1465,7 @@ async function onBookChange() {
 
         function hideAnalysis() {
             const panel = document.getElementById('analysisPanel');
-            if (panel && panel.classList.contains('open')) {
-                toggleCollapse('analysisPanel');
-            }
+            if (panel) panel.classList.toggle('hidden');
         }
 
         async function analyzeCurrent() {
@@ -1513,20 +1475,15 @@ async function onBookChange() {
             const text = sentences.join(' ');
 
             const panel = document.getElementById('analysisPanel');
-            const loading = document.getElementById('analysisLoading');
             const meaning = document.getElementById('analysisMeaningText');
             const modelSelect = document.getElementById('analysisModelSelect');
 
-            if (!panel || !loading || !meaning || !modelSelect) return;
+            if (!panel || !meaning || !modelSelect) return;
 
-            if (!panel.classList.contains('open')) {
-                toggleCollapse('analysisPanel');
-            }
             if (analyzeController) {
                 analyzeController.abort();
             }
             analyzeController = new AbortController();
-            loading.style.display = 'block';
             meaning.textContent = '-';
 
             try {
@@ -1560,7 +1517,6 @@ async function onBookChange() {
                 if (analyzeController && analyzeController.signal.aborted) {
                     return;
                 }
-                loading.style.display = 'none';
             }
         }
 
