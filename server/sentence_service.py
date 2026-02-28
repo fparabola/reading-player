@@ -17,6 +17,9 @@ from pathlib import Path
 from typing import List, Optional
 import uvicorn
 import edge_tts
+import json
+import requests
+import traceback
 
 app = FastAPI(title="Sentence Splitter API", version="2.0.0")
 
@@ -31,6 +34,26 @@ app.add_middleware(
 
 # 资源目录常量
 RESOURCE_DIR = Path(__file__).parent / "resource"
+LOG_PATH = Path(__file__).parent / "service.log"
+
+def log_line(message: str) -> None:
+    try:
+        with open(LOG_PATH, "a", encoding="utf-8") as f:
+            f.write(f"[analyze] {message}\n")
+    except Exception:
+        pass
+
+def mask_key(key: str) -> str:
+    if not key:
+        return ""
+    if len(key) <= 8:
+        return "*" * len(key)
+    return f"{key[:4]}...{key[-4:]}"
+
+@app.on_event("startup")
+async def log_api_key():
+    api_key = os.getenv("SILICONFLOW_API_KEY", "")
+    log_line(f"SILICONFLOW_API_KEY={mask_key(api_key)}")
 
 async def synthesize_tts(text: str, voice: str, rate: str) -> bytes:
     communicator = edge_tts.Communicate(text=text, voice=voice, rate=rate)
@@ -146,7 +169,16 @@ class ChapterContentResponse(BaseModel):
     text: str
     start_position: int
     end_position: int
-    paragraph_end: bool  # 是否到达段落结尾
+
+
+class AnalyzeRequest(BaseModel):
+    text: str
+
+
+class AnalyzeResponse(BaseModel):
+    meaning: str
+    vocabulary: str
+    grammar: str
 
 
 class BookListResponse(BaseModel):
@@ -611,6 +643,62 @@ async def tts(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
+
+
+@app.post("/analyze", response_model=AnalyzeResponse)
+async def analyze_text(request: AnalyzeRequest):
+    api_key = os.getenv("SILICONFLOW_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY")
+
+    prompt = (
+        "请对下面这句话做中文解析，使用 Markdown 输出，包含以下三段标题：\n"
+        "## 整句释义\n"
+        "## 生词解释\n"
+        "## 语法分析\n\n"
+        f"句子：{request.text}"
+    )
+
+    payload = {
+        "model": "Pro/zai-org/GLM-4.7",
+        "messages": [
+            {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.3
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        log_line("request start")
+        resp = requests.post(
+            "https://api.siliconflow.cn/v1/chat/completions",
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=60
+        )
+        if resp.status_code != 200:
+            log_line(f"LLM status={resp.status_code} body={resp.text}")
+            raise HTTPException(status_code=500, detail="LLM error")
+        data = resp.json()
+        content = data["choices"][0]["message"]["content"]
+        log_line(f"LLM response: {content}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        log_line(f"LLM exception: {str(e)}")
+        log_line(traceback.format_exc())
+        raise HTTPException(status_code=500, detail="LLM error")
+
+    return AnalyzeResponse(
+        meaning=content,
+        vocabulary="",
+        grammar=""
+    )
 
 
 if __name__ == "__main__":
