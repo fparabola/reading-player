@@ -8,6 +8,7 @@
 - 章节内容接口：获取章节的片段内容
 """
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import re
@@ -15,6 +16,7 @@ import os
 from pathlib import Path
 from typing import List, Optional
 import uvicorn
+import edge_tts
 
 app = FastAPI(title="Sentence Splitter API", version="2.0.0")
 
@@ -29,6 +31,14 @@ app.add_middleware(
 
 # 资源目录常量
 RESOURCE_DIR = Path(__file__).parent / "resource"
+
+async def synthesize_tts(text: str, voice: str, rate: str) -> bytes:
+    communicator = edge_tts.Communicate(text=text, voice=voice, rate=rate)
+    audio_bytes = bytearray()
+    async for chunk in communicator.stream():
+        if chunk.get("type") == "audio":
+            audio_bytes.extend(chunk.get("data", b""))
+    return bytes(audio_bytes)
 
 def chapter_sort_key(name: str) -> tuple:
     match = re.search(r"\d+", name)
@@ -584,6 +594,23 @@ async def get_chapter_content(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading chapter: {str(e)}")
+
+
+@app.get("/tts")
+async def tts(
+    text: str = Query(..., min_length=1, description="要朗读的文本"),
+    voice: str = Query("zh-CN-XiaoxiaoNeural", description="语音"),
+    rate: str = Query("+0%", description="语速，例如 +0%, -10%")
+):
+    try:
+        audio = await synthesize_tts(text, voice, rate)
+        if not audio:
+            raise HTTPException(status_code=500, detail="TTS returned empty audio")
+        return Response(content=audio, media_type="audio/mpeg")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
 
 
 if __name__ == "__main__":

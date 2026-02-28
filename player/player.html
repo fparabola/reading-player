@@ -280,6 +280,49 @@
             text-align: right;
         }
 
+        .switch {
+            position: relative;
+            display: inline-flex;
+            width: 44px;
+            height: 24px;
+            align-items: center;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #3a3a66;
+            border-radius: 999px;
+            transition: 0.2s ease;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            top: 3px;
+            background: #eee;
+            border-radius: 50%;
+            transition: 0.2s ease;
+        }
+
+        .switch input:checked + .switch-slider {
+            background: #28a745;
+        }
+
+        .switch input:checked + .switch-slider:before {
+            transform: translateX(20px);
+        }
+
         /* 悬浮播放控制 */
         .floating-controls {
             position: fixed;
@@ -558,6 +601,13 @@
                 />
                 <span class="speed-value" id="speedValue">1.5s</span>
             </div>
+            <div class="speed-control">
+                <label>朗读 TTS:</label>
+                <label class="switch">
+                    <input type="checkbox" id="ttsToggle" onchange="toggleTts()">
+                    <span class="switch-slider"></span>
+                </label>
+            </div>
             <div class="control-buttons">
                 <button class="btn btn-secondary" onclick="gotoBeginning()" id="btnBeginning" disabled>
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -601,6 +651,11 @@
         let currentSentences = [];
         let currentSentenceIndex = 0;
         let maxSentencesPerPage = 2;  // 同时最多显示2个句子
+        let ttsEnabled = false;
+        const ttsAudio = new Audio();
+        ttsAudio.preload = 'auto';
+        const TTS_VOICE_ZH = 'zh-CN-XiaoxiaoNeural';
+        const TTS_VOICE_EN = 'en-US-AriaNeural';
         let isPlaying = false;
         let playInterval = null;
         let playSpeed = 1500;  // 默认1.5秒，每次显示1-2句
@@ -628,6 +683,12 @@
         function initUI() {
             initTopPanel();
             initFloatingControls();
+            updateTtsUI();
+            ttsAudio.addEventListener('ended', async () => {
+                if (ttsEnabled && isPlaying) {
+                    await nextPage();
+                }
+            });
             loadBooks();
         }
 
@@ -972,6 +1033,9 @@ async function onBookChange() {
             currentSentenceIndex = 0;
             isPlaying = false;
             if (playInterval) clearInterval(playInterval);
+            if (ttsEnabled) {
+                ttsAudio.pause();
+            }
 
             try {
                 // 获取章节内容
@@ -1061,6 +1125,9 @@ async function onBookChange() {
             updatePlayButtons();
             // 保存阅读位置
             saveReadingPosition();
+            if (ttsEnabled && isPlaying) {
+                speakCurrent();
+            }
         }
 
         // 更新进度
@@ -1188,6 +1255,15 @@ async function onBookChange() {
             document.getElementById('btnPlay').classList.remove('btn-success');
             document.getElementById('btnPlay').classList.add('btn-danger');
 
+            if (ttsEnabled) {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                speakCurrent();
+                return;
+            }
+
             playInterval = setInterval(async () => {
                 await nextPage();
             }, playSpeed);
@@ -1200,6 +1276,9 @@ async function onBookChange() {
             if (playInterval) {
                 clearInterval(playInterval);
                 playInterval = null;
+            }
+            if (ttsEnabled) {
+                ttsAudio.pause();
             }
 
             document.getElementById('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
@@ -1221,6 +1300,60 @@ async function onBookChange() {
 
             if (isPlaying) {
                 pause();
+                play();
+            }
+        }
+
+        function ttsRateFromSpeed(speedMs) {
+            const minSpeed = 500;
+            const maxSpeed = 30000;
+            const clamped = Math.max(minSpeed, Math.min(maxSpeed, speedMs));
+            const t = (clamped - minSpeed) / (maxSpeed - minSpeed);
+            const rate = 50 + t * (-130); // 500ms => +50%, 30s => -80%
+            const rounded = Math.round(rate);
+            return `${rounded >= 0 ? '+' : ''}${rounded}%`;
+        }
+
+        function detectLanguage(text) {
+            if (/[\u4e00-\u9fff]/.test(text)) return 'zh';
+            return 'en';
+        }
+
+        function speakCurrent() {
+            const endIndex = Math.min(currentSentenceIndex + maxSentencesPerPage, currentSentences.length);
+            const sentences = currentSentences.slice(currentSentenceIndex, endIndex);
+            if (sentences.length === 0) return;
+            const text = sentences.join(' ');
+            const lang = detectLanguage(text);
+            const voice = lang === 'zh' ? TTS_VOICE_ZH : TTS_VOICE_EN;
+            const rate = ttsRateFromSpeed(playSpeed);
+            const url = `${API_URL}/tts?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`;
+
+            ttsAudio.pause();
+            ttsAudio.currentTime = 0;
+            ttsAudio.src = url;
+            ttsAudio.play().catch(() => {
+                // ignore autoplay errors
+            });
+        }
+
+        function updateTtsUI() {
+            const toggle = document.getElementById('ttsToggle');
+            if (!toggle) return;
+            toggle.checked = ttsEnabled;
+        }
+
+        function toggleTts() {
+            ttsEnabled = !ttsEnabled;
+            updateTtsUI();
+            if (ttsEnabled && isPlaying) {
+                if (playInterval) {
+                    clearInterval(playInterval);
+                    playInterval = null;
+                }
+                speakCurrent();
+            } else if (!ttsEnabled && isPlaying) {
+                ttsAudio.pause();
                 play();
             }
         }
