@@ -674,6 +674,10 @@
                 <option value="deepseek-ai/DeepSeek-V3.1-Terminus">deepseek-ai/DeepSeek-V3.1-Terminus</option>
                 <option value="Pro/deepseek-ai/DeepSeek-V3.1-Terminus">Pro/deepseek-ai/DeepSeek-V3.1-Terminus</option>
             </select>
+            <label class="switch">
+                <input type="checkbox" id="autoAnalyzeToggle" onchange="toggleAutoAnalyze()">
+                <span class="switch-slider"></span>
+            </label>
             <button class="btn btn-secondary" onclick="analyzeCurrent()" id="btnAnalyze" disabled>
                 解析当前句子
             </button>
@@ -770,6 +774,7 @@
         ttsAudio.preload = 'auto';
         const TTS_VOICE_ZH = 'zh-CN-XiaoxiaoNeural';
         const TTS_VOICE_EN = 'en-US-AriaNeural';
+        let autoAnalyzeEnabled = false;
         let isPlaying = false;
         let playInterval = null;
         let playSpeed = 1500;  // 默认1.5秒，每次显示1-2句
@@ -798,6 +803,7 @@
             initTopPanel();
             initFloatingControls();
             updateTtsUI();
+            initAutoAnalyze();
             ttsAudio.addEventListener('ended', async () => {
                 if (ttsEnabled && isPlaying) {
                     await nextPage();
@@ -1266,6 +1272,9 @@ async function onBookChange() {
             if (ttsEnabled && isPlaying) {
                 speakCurrent();
             }
+            if (autoAnalyzeEnabled) {
+                analyzeCurrent();
+            }
         }
 
         // 更新进度
@@ -1479,6 +1488,25 @@ async function onBookChange() {
             const toggle = document.getElementById('ttsToggle');
             if (!toggle) return;
             toggle.checked = ttsEnabled;
+        }
+
+        function initAutoAnalyze() {
+            const saved = localStorage.getItem('auto_analyze_enabled');
+            autoAnalyzeEnabled = saved === '1';
+            const toggle = document.getElementById('autoAnalyzeToggle');
+            if (toggle) {
+                toggle.checked = autoAnalyzeEnabled;
+            }
+        }
+
+        function toggleAutoAnalyze() {
+            autoAnalyzeEnabled = !autoAnalyzeEnabled;
+            localStorage.setItem('auto_analyze_enabled', autoAnalyzeEnabled ? '1' : '0');
+            const toggle = document.getElementById('autoAnalyzeToggle');
+            if (toggle) toggle.checked = autoAnalyzeEnabled;
+            if (autoAnalyzeEnabled) {
+                analyzeCurrent();
+            }
         }
 
         function toggleTts() {
