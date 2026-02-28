@@ -807,6 +807,7 @@
             initFloatingControls();
             updateTtsUI();
             initAutoAnalyze();
+            initAnalysisModel();
             updateTopPanelHeight();
             window.addEventListener('resize', updateTopPanelHeight);
             ttsAudio.addEventListener('ended', async () => {
@@ -1522,6 +1523,19 @@ async function onBookChange() {
             document.documentElement.style.setProperty('--top-panel-height', `${height}px`);
         }
 
+        function initAnalysisModel() {
+            const select = document.getElementById('analysisModelSelect');
+            if (!select) return;
+            const saved = localStorage.getItem('analysis_model');
+            if (saved) {
+                const exists = Array.from(select.options).some(opt => opt.value === saved);
+                if (exists) select.value = saved;
+            }
+            select.addEventListener('change', () => {
+                localStorage.setItem('analysis_model', select.value);
+            });
+        }
+
         function toggleTts() {
             ttsEnabled = !ttsEnabled;
             updateTtsUI();
@@ -1650,6 +1664,7 @@ async function onBookChange() {
             meaning.textContent = '-';
 
             try {
+                localStorage.setItem('analysis_model', modelSelect.value);
                 const response = await fetch(`${API_URL}/analyze_stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
