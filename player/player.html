@@ -225,23 +225,6 @@
             margin-bottom: 12px;
         }
 
-        .analysis-panel {
-            width: 95%;
-            max-width: 1200px;
-            margin: 20px auto 30px;
-            padding: 16px 20px;
-            background: rgba(26, 26, 46, 0.8);
-            border: 1px solid #2c2c52;
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .analysis-panel.hidden {
-            display: none;
-        }
-
         .analysis-header {
             display: flex;
             justify-content: space-between;
@@ -261,6 +244,14 @@
             flex-wrap: wrap;
         }
 
+        .btn-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            padding: 0;
+            justify-content: center;
+        }
+
         .analysis-title {
             font-size: 14px;
             color: #bbb;
@@ -274,11 +265,19 @@
             font-size: 14px;
             color: #eee;
             line-height: 1.6;
+            width: 70%;
+            margin: 0 auto;
         }
 
         .analysis-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 14px;
             color: #bbb;
+            justify-content: center;
+            width: 100%;
+            text-align: center;
         }
 
         .analysis-content h1,
@@ -567,6 +566,24 @@
                 <select id="chapterSelect" onchange="onChapterChange()" disabled>
                     <option value="">-- 选择章节 Select Chapter --</option>
                 </select>
+                <select id="analysisModelSelect" class="btn btn-secondary">
+                    <option value="Pro/zai-org/GLM-4.7">Pro/zai-org/GLM-4.7</option>
+                    <option value="deepseek-ai/DeepSeek-V3.2">deepseek-ai/DeepSeek-V3.2</option>
+                    <option value="Pro/deepseek-ai/DeepSeek-V3.2">Pro/deepseek-ai/DeepSeek-V3.2</option>
+                    <option value="zai-org/GLM-4.6">zai-org/GLM-4.6</option>
+                    <option value="Qwen/Qwen3-8B">Qwen/Qwen3-8B</option>
+                    <option value="Qwen/Qwen3-14B" selected>Qwen/Qwen3-14B</option>
+                    <option value="Qwen/Qwen3-32B">Qwen/Qwen3-32B</option>
+                    <option value="Qwen/Qwen3-30B-A3B">Qwen/Qwen3-30B-A3B</option>
+                    <option value="tencent/Hunyuan-A13B-Instruct">tencent/Hunyuan-A13B-Instruct</option>
+                    <option value="zai-org/GLM-4.5V">zai-org/GLM-4.5V</option>
+                    <option value="deepseek-ai/DeepSeek-V3.1-Terminus">deepseek-ai/DeepSeek-V3.1-Terminus</option>
+                    <option value="Pro/deepseek-ai/DeepSeek-V3.1-Terminus">Pro/deepseek-ai/DeepSeek-V3.1-Terminus</option>
+                </select>
+                <label class="switch">
+                    <input type="checkbox" id="autoAnalyzeToggle" onchange="toggleAutoAnalyze()">
+                    <span class="switch-slider"></span>
+                </label>
                 <label>朗读 TTS:</label>
                 <label class="switch">
                     <input type="checkbox" id="ttsToggle" onchange="toggleTts()">
@@ -651,36 +668,11 @@
         <!-- 当前章节显示 -->
         <div class="chapter-nav" id="chapterNav" style="display: none;"></div>
 
-        <div class="analysis-panel" id="analysisPanel">
-            <div class="analysis-header">
-                <span class="analysis-title">句子解析</span>
+        <div class="analysis-section" id="analysisMeaning">
+            <div class="analysis-loading" id="analysisLoading" style="display:none;">
+                <span class="loading"></span>
             </div>
-            <div class="analysis-controls">
-                <select id="analysisModelSelect" class="btn btn-secondary">
-                    <option value="Pro/zai-org/GLM-4.7">Pro/zai-org/GLM-4.7</option>
-                    <option value="deepseek-ai/DeepSeek-V3.2">deepseek-ai/DeepSeek-V3.2</option>
-                    <option value="Pro/deepseek-ai/DeepSeek-V3.2">Pro/deepseek-ai/DeepSeek-V3.2</option>
-                    <option value="zai-org/GLM-4.6">zai-org/GLM-4.6</option>
-                    <option value="Qwen/Qwen3-8B">Qwen/Qwen3-8B</option>
-                    <option value="Qwen/Qwen3-14B" selected>Qwen/Qwen3-14B</option>
-                    <option value="Qwen/Qwen3-32B">Qwen/Qwen3-32B</option>
-                    <option value="Qwen/Qwen3-30B-A3B">Qwen/Qwen3-30B-A3B</option>
-                    <option value="tencent/Hunyuan-A13B-Instruct">tencent/Hunyuan-A13B-Instruct</option>
-                    <option value="zai-org/GLM-4.5V">zai-org/GLM-4.5V</option>
-                    <option value="deepseek-ai/DeepSeek-V3.1-Terminus">deepseek-ai/DeepSeek-V3.1-Terminus</option>
-                    <option value="Pro/deepseek-ai/DeepSeek-V3.1-Terminus">Pro/deepseek-ai/DeepSeek-V3.1-Terminus</option>
-                </select>
-                <label class="switch">
-                    <input type="checkbox" id="autoAnalyzeToggle" onchange="toggleAutoAnalyze()">
-                    <span class="switch-slider"></span>
-                </label>
-                <button class="btn btn-secondary" onclick="analyzeCurrent()" id="btnAnalyze" disabled>
-                    解析当前句子
-                </button>
-            </div>
-            <div class="analysis-section" id="analysisMeaning">
-                <div class="analysis-content" id="analysisMeaningText">-</div>
-            </div>
+            <div class="analysis-content" id="analysisMeaningText"></div>
         </div>
 
         <div id="errorMessage"></div>
@@ -1470,28 +1462,24 @@ async function onBookChange() {
             progressRange.title = `跳转到句子 ${clamped + 1}`;
         }
 
-        function hideAnalysis() {
-            const panel = document.getElementById('analysisPanel');
-            if (panel) panel.classList.toggle('hidden');
-        }
-
         async function analyzeCurrent() {
             if (currentSentences.length === 0) return;
             const endIndex = Math.min(currentSentenceIndex + maxSentencesPerPage, currentSentences.length);
             const sentences = currentSentences.slice(currentSentenceIndex, endIndex);
             const text = sentences.join(' ');
 
-            const panel = document.getElementById('analysisPanel');
             const meaning = document.getElementById('analysisMeaningText');
+            const loading = document.getElementById('analysisLoading');
             const modelSelect = document.getElementById('analysisModelSelect');
 
-            if (!panel || !meaning || !modelSelect) return;
+            if (!meaning || !modelSelect || !loading) return;
 
             if (analyzeController) {
                 analyzeController.abort();
             }
             analyzeController = new AbortController();
-            meaning.textContent = '-';
+            loading.style.display = 'block';
+            meaning.textContent = '';
 
             try {
                 localStorage.setItem('analysis_model', modelSelect.value);
@@ -1513,6 +1501,9 @@ async function onBookChange() {
                     const { value, done } = await reader.read();
                     if (done) break;
                     buffer += decoder.decode(value, { stream: true });
+                    if (buffer.trim().length > 0) {
+                        loading.style.display = 'none';
+                    }
                     meaning.innerHTML = renderMarkdown(buffer);
                 }
             } catch (error) {
@@ -1524,6 +1515,7 @@ async function onBookChange() {
                 if (analyzeController && analyzeController.signal.aborted) {
                     return;
                 }
+                loading.style.display = 'none';
             }
         }
 
