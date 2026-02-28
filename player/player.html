@@ -41,63 +41,35 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             text-align: center;
-            padding: 20px 0;
+            padding: 25px 40px;
             transition: all 0.3s ease;
-            overflow-y: auto; /* 添加垂直滚动 */
-            overflow-x: hidden;
-        }
-
-        /* 自定义滚动条样式 */
-        .subtitle-container::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .subtitle-container::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-        }
-
-        .subtitle-container::-webkit-scrollbar-thumb {
-            background: rgba(102, 126, 234, 0.5);
-            border-radius: 3px;
-        }
-
-        .subtitle-container::-webkit-scrollbar-thumb:hover {
-            background: rgba(102, 126, 234, 0.8);
         }
 
         .sentence-display {
             width: 100%;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            flex: 1;
             justify-content: center;
-            min-height: 0;
+            align-items: center;
+            gap: 8px;
+            height: 100%;
         }
 
         .subtitle-line {
-            font-size: clamp(18px, 3.5vw, 30px);
+            font-size: clamp(16px, 2.8vw, 26px);
             font-weight: 700;
             color: #fff;
-            line-height: 1.4;
+            line-height: 1.35;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(15px);
             animation: fadeInUp 0.4s ease forwards;
-            word-wrap: break-word; /* 允许长单词换行 */
+            word-wrap: break-word;
             overflow-wrap: break-word;
-            hyphens: auto; /* 自动断字 */
-            max-width: 100%; /* 确保不超出容器 */
-        }
-
-        /* 当句子很长时显示省略号 */
-        .subtitle-line.truncate {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            width: 100%;
+            hyphens: auto;
         }
 
         @keyframes fadeInUp {
@@ -312,19 +284,20 @@
         }
 
         /* 响应式 */
+        @media (max-width: 1024px) {
+            .subtitle-container {
+                padding: 20px 30px;
+            }
+        }
+
         @media (max-width: 768px) {
             .btn {
                 padding: 10px 16px;
                 font-size: 14px;
             }
-            .subtitle-line {
-                font-size: clamp(16px, 4.5vw, 22px);
-                line-height: 1.3;
-            }
             .subtitle-container {
-                width: 98%;
-                padding: 15px 0;
-                gap: 8px;
+                width: 96%;
+                padding: 15px 15px;
             }
             .book-select-section select {
                 min-width: 120px;
@@ -333,8 +306,9 @@
         }
 
         @media (max-width: 480px) {
-            .subtitle-line {
-                font-size: clamp(14px, 5vw, 20px);
+            .subtitle-container {
+                padding: 10px 10px;
+                gap: 6px;
             }
         }
     </style>
@@ -463,16 +437,16 @@
             } else if (windowWidth <= 768) {
                 fontSize = Math.max(16, Math.min(22, windowWidth * 0.045));
             } else {
-                fontSize = Math.max(18, Math.min(30, windowWidth * 0.035));
+                fontSize = Math.max(16, Math.min(26, windowWidth * 0.028));
             }
             // 每行高度（字体大小 + 行间距）
-            const lineHeight = fontSize * 1.4;
-            // 容器可用高度（减去padding）
-            const availableHeight = windowHeight * 0.9;
-            // 计算可显示的行数
-            const maxLines = Math.floor(availableHeight / lineHeight / 1.2);
-            // 考虑padding和gap
-            maxSentencesPerPage = Math.max(2, Math.min(10, maxLines));
+            const lineHeight = fontSize * 1.35;
+            // 容器可用高度（减去padding约50px）
+            const availableHeight = windowHeight - 50;
+            // 计算可显示的行数（保守估计，留余量）
+            const maxLines = Math.floor(availableHeight / lineHeight / 1.3);
+            // 考虑padding和gap，每页最多显示的句子数
+            maxSentencesPerPage = Math.max(2, Math.min(8, maxLines));
         }
 
         initMaxSentences();
