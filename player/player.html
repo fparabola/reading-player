@@ -209,6 +209,13 @@
             gap: 10px;
         }
 
+        .analysis-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .analysis-title {
             font-size: 14px;
             color: #bbb;
@@ -652,9 +659,25 @@
             </button>
         </div>
 
-        <button class="btn btn-secondary" onclick="analyzeCurrent()" id="btnAnalyze" disabled>
-            解析当前句子
-        </button>
+        <div class="analysis-controls">
+            <select id="analysisModelSelect" class="btn btn-secondary">
+                <option value="Pro/zai-org/GLM-4.7">Pro/zai-org/GLM-4.7</option>
+                <option value="deepseek-ai/DeepSeek-V3.2">deepseek-ai/DeepSeek-V3.2</option>
+                <option value="Pro/deepseek-ai/DeepSeek-V3.2">Pro/deepseek-ai/DeepSeek-V3.2</option>
+                <option value="zai-org/GLM-4.6">zai-org/GLM-4.6</option>
+                <option value="Qwen/Qwen3-8B">Qwen/Qwen3-8B</option>
+                <option value="Qwen/Qwen3-14B" selected>Qwen/Qwen3-14B</option>
+                <option value="Qwen/Qwen3-32B">Qwen/Qwen3-32B</option>
+                <option value="Qwen/Qwen3-30B-A3B">Qwen/Qwen3-30B-A3B</option>
+                <option value="tencent/Hunyuan-A13B-Instruct">tencent/Hunyuan-A13B-Instruct</option>
+                <option value="zai-org/GLM-4.5V">zai-org/GLM-4.5V</option>
+                <option value="deepseek-ai/DeepSeek-V3.1-Terminus">deepseek-ai/DeepSeek-V3.1-Terminus</option>
+                <option value="Pro/deepseek-ai/DeepSeek-V3.1-Terminus">Pro/deepseek-ai/DeepSeek-V3.1-Terminus</option>
+            </select>
+            <button class="btn btn-secondary" onclick="analyzeCurrent()" id="btnAnalyze" disabled>
+                解析当前句子
+            </button>
+        </div>
 
         <div id="errorMessage"></div>
     </div>
@@ -1553,8 +1576,9 @@ async function onBookChange() {
             const panel = document.getElementById('analysisPanel');
             const loading = document.getElementById('analysisLoading');
             const meaning = document.getElementById('analysisMeaningText');
+            const modelSelect = document.getElementById('analysisModelSelect');
 
-            if (!panel || !loading || !meaning) return;
+            if (!panel || !loading || !meaning || !modelSelect) return;
 
             panel.classList.add('show');
             loading.style.display = 'block';
@@ -1564,7 +1588,7 @@ async function onBookChange() {
                 const response = await fetch(`${API_URL}/analyze_stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text })
+                    body: JSON.stringify({ text, model: modelSelect.value })
                 });
                 if (!response.ok || !response.body) {
                     throw new Error(await response.text());

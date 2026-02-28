@@ -173,12 +173,37 @@ class ChapterContentResponse(BaseModel):
 
 class AnalyzeRequest(BaseModel):
     text: str
+    model: Optional[str] = None
 
 
 class AnalyzeResponse(BaseModel):
     meaning: str
     vocabulary: str
     grammar: str
+
+
+def build_analyze_prompt(text: str) -> str:
+    return (
+        "你是一名资深的英文导读老师，现在正在帮我进行英语精读训练。我是英语学习者。\n"
+        "请用 **Markdown** 输出，严格按下面结构回答：\n\n"
+        "## 1. 中文翻译\n"
+        "- 给出自然中文翻译（不要逐词直译）\n\n"
+        "## 2. 作者意图\n"
+        "- 作者这样写有什么特殊含义（如果句子有特殊意味）\n\n"
+        "## 3. 重点词汇\n"
+        "- 词性 + 核心含义 + 语境含义\n\n"
+        "## 4. 重点短语/固定搭配\n"
+        "- 列出并解释\n\n"
+        "## 5. 长难句结构\n"
+        "- 如果有，分层说明\n\n"
+        "## 6. 语法重点\n"
+        "- 总结本段语法重点\n\n"
+        "## 7. 简单英语总结\n"
+        "- 用简单英语总结本段内容（帮助理解）\n\n"
+        "讲解要清晰，适合中级英语学习者。\n\n"
+        "以下是文本：\n"
+        f"{text}"
+    )
 
 
 class BookListResponse(BaseModel):
@@ -651,16 +676,11 @@ async def analyze_text(request: AnalyzeRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY")
 
-    prompt = (
-        "请对下面这句话做中文解析，使用 Markdown 输出，包含以下三段标题：\n"
-        "## 整句释义\n"
-        "## 生词解释\n"
-        "## 语法分析\n\n"
-        f"句子：{request.text}"
-    )
+    prompt = build_analyze_prompt(request.text)
 
+    model_name = request.model or "Qwen/Qwen3-14B"
     payload = {
-        "model": "Pro/zai-org/GLM-4.7",
+        "model": model_name,
         "messages": [
             {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
             {"role": "user", "content": prompt}
@@ -707,16 +727,11 @@ async def analyze_text_stream(request: AnalyzeRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY")
 
-    prompt = (
-        "请对下面这句话做中文解析，使用 Markdown 输出，包含以下三段标题：\n"
-        "## 整句释义\n"
-        "## 生词解释\n"
-        "## 语法分析\n\n"
-        f"句子：{request.text}"
-    )
+    prompt = build_analyze_prompt(request.text)
 
+    model_name = request.model or "Qwen/Qwen3-14B"
     payload = {
-        "model": "Pro/zai-org/GLM-4.7",
+        "model": model_name,
         "messages": [
             {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
             {"role": "user", "content": prompt}
