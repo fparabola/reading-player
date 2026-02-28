@@ -778,6 +778,7 @@
         const TTS_VOICE_ZH = 'zh-CN-XiaoxiaoNeural';
         const TTS_VOICE_EN = 'en-US-AriaNeural';
         let autoAnalyzeEnabled = false;
+        let analyzeController = null;
         let isPlaying = false;
         let playInterval = null;
         let playSpeed = 1500;  // 默认1.5秒，每次显示1-2句
@@ -1659,6 +1660,11 @@ async function onBookChange() {
 
             if (!panel || !loading || !meaning || !modelSelect) return;
 
+            if (analyzeController) {
+                analyzeController.abort();
+            }
+            analyzeController = new AbortController();
+
             panel.classList.add('show');
             loading.style.display = 'block';
             meaning.textContent = '-';
@@ -1668,7 +1674,8 @@ async function onBookChange() {
                 const response = await fetch(`${API_URL}/analyze_stream`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, model: modelSelect.value })
+                    body: JSON.stringify({ text, model: modelSelect.value }),
+                    signal: analyzeController.signal
                 });
                 if (!response.ok || !response.body) {
                     throw new Error(await response.text());
@@ -1685,8 +1692,14 @@ async function onBookChange() {
                     meaning.innerHTML = renderMarkdown(buffer);
                 }
             } catch (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
                 meaning.textContent = '解析失败';
             } finally {
+                if (analyzeController && analyzeController.signal.aborted) {
+                    return;
+                }
                 loading.style.display = 'none';
             }
         }
