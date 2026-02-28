@@ -8,6 +8,7 @@
 - 章节内容接口：获取章节的片段内容
 """
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import re
 import os
@@ -16,6 +17,15 @@ from typing import List, Optional
 import uvicorn
 
 app = FastAPI(title="Sentence Splitter API", version="2.0.0")
+
+# 添加 CORS 中间件，允许本地文件访问
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 允许所有来源（本地文件）
+    allow_credentials=True,
+    allow_methods=["*"],  # 允许所有方法
+    allow_headers=["*"],  # 允许所有头
+)
 
 # 资源目录常量
 RESOURCE_DIR = Path(__file__).parent / "resource"
