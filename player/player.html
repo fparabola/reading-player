@@ -122,6 +122,18 @@
             text-align: center;
             padding: 30px 40px;
             transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .text-area {
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            min-height: 0;
         }
 
         .sentence-display {
@@ -210,6 +222,7 @@
             align-items: center;
             gap: 10px;
             justify-content: center;
+            margin-bottom: 12px;
         }
 
         .analysis-controls {
@@ -448,6 +461,18 @@
             justify-content: center;
             gap: 12px;
             margin-top: 12px;
+            margin-bottom: 10px;
+        }
+
+        .player-controls-bar {
+            width: 100%;
+            max-width: 1100px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         /* 加载动画 */
@@ -570,56 +595,60 @@
     <!-- 播放窗口 -->
     <div class="player-window">
         <div class="subtitle-container" id="subtitleContainer">
-            <div class="empty-state" id="emptyState">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M9 19V6l12 7-12 7z"/>
-                    <path d="M3 6v12l12-7-12-7z" style="opacity:0.5"/>
-                </svg>
-                <p>请选择书籍和章节开始播放</p>
-                <p style="font-size: 14px;">Please select a book and chapter to start playing</p>
+            <div class="text-area">
+                <div class="empty-state" id="emptyState">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M9 19V6l12 7-12 7z"/>
+                        <path d="M3 6v12l12-7-12-7z" style="opacity:0.5"/>
+                    </svg>
+                    <p>请选择书籍和章节开始播放</p>
+                    <p style="font-size: 14px;">Please select a book and chapter to start playing</p>
+                </div>
+                <div class="sentence-display" id="sentenceDisplay"></div>
             </div>
-            <div class="sentence-display" id="sentenceDisplay"></div>
-            <div class="player-controls">
-                <button class="btn btn-secondary" onclick="gotoBeginning()" id="btnBeginning" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="19 20 9 12 19 4 19 20"/>
-                        <line x1="5" y1="19" x2="5" y2="5"/>
-                    </svg>
-                </button>
-                <button class="btn btn-secondary" onclick="previousPage()" id="btnPrev" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="15 18 9 12 15 6 15 18"/>
-                    </svg>
-                </button>
-                <button class="btn btn-success" onclick="togglePlay()" id="btnPlay" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
-                        <polygon points="5 3 19 12 5 21 5 3"/>
-                    </svg>
-                </button>
-                <button class="btn btn-secondary" onclick="nextPage()" id="btnNext" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="9 18 15 12 9 6 9 18"/>
-                    </svg>
-                </button>
-                <button class="btn btn-secondary" onclick="gotoEnd()" id="btnEnd" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="5 4 15 12 5 20 5 4"/>
-                        <line x1="19" y1="5" x2="19" y2="19"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="progress-row">
-                <input
-                    id="progressRange"
-                    class="progress-range"
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value="0"
-                    oninput="updateSeekPreview(parseInt(this.value, 10) / 100)"
-                    onchange="seekByPercent(parseInt(this.value, 10) / 100)"
-                />
+            <div class="player-controls-bar">
+                <div class="player-controls">
+                    <button class="btn btn-secondary" onclick="gotoBeginning()" id="btnBeginning" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="19 20 9 12 19 4 19 20"/>
+                            <line x1="5" y1="19" x2="5" y2="5"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary" onclick="previousPage()" id="btnPrev" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="15 18 9 12 15 6 15 18"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-success" onclick="togglePlay()" id="btnPlay" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary" onclick="nextPage()" id="btnNext" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="9 18 15 12 9 6 9 18"/>
+                        </svg>
+                    </button>
+                    <button class="btn btn-secondary" onclick="gotoEnd()" id="btnEnd" disabled>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 4 15 12 5 20 5 4"/>
+                            <line x1="19" y1="5" x2="19" y2="19"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="progress-row">
+                    <input
+                        id="progressRange"
+                        class="progress-range"
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value="0"
+                        oninput="updateSeekPreview(parseInt(this.value, 10) / 100)"
+                        onchange="seekByPercent(parseInt(this.value, 10) / 100)"
+                    />
+                </div>
             </div>
         </div>
         <div class="player-resizer" id="playerResizer" title="拖动调整高度"></div>
