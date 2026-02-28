@@ -209,7 +209,7 @@ GET /chapter/{book_name}
 **请求:**
 
 ```http
-GET /chapter/{book_name}/{chapter_name}?position=0
+GET /chapter/{book_name}/{chapter_name}?position=0&min_size=500
 ```
 
 **参数:**
@@ -219,6 +219,12 @@ GET /chapter/{book_name}/{chapter_name}?position=0
 | `book_name` | path | 是 | 书名（文件夹名，URL编码） |
 | `chapter_name` | path | 是 | 章节名（txt文件名，URL编码） |
 | `position` | query | 否 | 起始位置（字符索引），默认0 |
+| `min_size` | query | 否 | 最小内容长度（字符数），默认100 |
+
+**返回规则:**
+1. 从 `position` 位置开始读取
+2. 内容长度至少为 `min_size`
+3. 读取到段落结尾（`\n\n`）才停止
 
 **响应:**
 
@@ -226,9 +232,9 @@ GET /chapter/{book_name}/{chapter_name}?position=0
 {
   "book_name": "哈利波特1-7英文原版",
   "chapter_name": "1.Harry Potter and the Sorcerer's Stone.txt",
-  "text": "这里是从指定位置开始到段落结尾的文本内容...",
+  "text": "这里是从指定位置开始，满足最小长度且到段落结尾的文本内容...",
   "start_position": 0,
-  "end_position": 250,
+  "end_position": 550,
   "paragraph_end": false
 }
 ```

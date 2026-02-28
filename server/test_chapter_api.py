@@ -94,7 +94,7 @@ def test_get_chapter_content(book_name, chapter_name):
     encoded_book = urllib.parse.quote(book_name, safe='')
     encoded_chapter = urllib.parse.quote(chapter_name, safe='')
 
-    # 从位置0开始获取内容
+    # 从位置0开始获取内容（默认min_size=100）
     data, status_code = http_get(f"{BASE_URL}/chapter/{encoded_book}/{encoded_chapter}?position=0")
 
     if status_code and data:
@@ -111,17 +111,34 @@ def test_get_chapter_content(book_name, chapter_name):
         print(text[:200] + "..." if len(text) > 200 else text)
         print("-" * 40)
 
-        # 测试从不同位置获取内容
-        if len(text) > 500:
-            print(f"\n测试从位置500获取内容:")
-            data2, status2 = http_get(f"{BASE_URL}/chapter/{encoded_book}/{encoded_chapter}?position=500")
-            if data2:
-                text2 = data2.get('text', '')
-                print(f"内容: {text2[:100]}...")
-    else:
-        print(f"请求失败，状态码: {status_code}")
-        if data:
-            print(f"错误信息: {data}")
+    # 测试不同的min_size值
+    print(f"\n测试4: min_size=500")
+    data2, status2 = http_get(f"{BASE_URL}/chapter/{encoded_book}/{encoded_chapter}?position=0&min_size=500")
+    if data2:
+        text2 = data2.get('text', '')
+        print(f"  文本长度: {len(text2)} 字符 (要求 >=500)")
+        print(f"  内容预览: {text2[:100]}...")
+
+    print(f"\n测试5: min_size=2000")
+    data3, status3 = http_get(f"{BASE_URL}/chapter/{encoded_book}/{encoded_chapter}?position=0&min_size=2000")
+    if data3:
+        text3 = data3.get('text', '')
+        print(f"  文本长度: {len(text3)} 字符 (要求 >=2000)")
+
+    # 测试从不同位置获取内容
+    if len(text) > 500:
+        print(f"\n测试6: position=500, min_size=300")
+        data4, status4 = http_get(f"{BASE_URL}/chapter/{encoded_book}/{encoded_chapter}?position=500&min_size=300")
+        if data4:
+            text4 = data4.get('text', '')
+            print(f"  起始位置: {data4.get('start_position', 0)}")
+            print(f"  文本长度: {len(text4)} 字符")
+
+    if status_code and data:
+        return
+    print(f"请求失败，状态码: {status_code}")
+    if data:
+        print(f"错误信息: {data}")
 
 
 def main():

@@ -406,7 +406,8 @@ async def get_chapters(book_name: str):
 async def get_chapter_content(
     book_name: str,
     chapter_name: str,
-    position: int = Query(0, ge=0, description="起始位置（字符索引），从0开始")
+    position: int = Query(0, ge=0, description="起始位置（字符索引），从0开始"),
+    min_size: int = Query(100, ge=0, description="最小内容长度（字符数），默认100")
 ):
     """
     获取章节内容接口
@@ -415,9 +416,10 @@ async def get_chapter_content(
         book_name: 书名（文件夹名）
         chapter_name: 章节名（txt文件名）
         position: 起始位置（字符索引），从0开始
+        min_size: 最小内容长度（字符数），默认100
 
     返回:
-        从起始位置到段落结尾的文本片段
+        从起始位置开始，内容长度至少为 min_size 并且读取到段落结尾的文本片段
     """
     try:
         # URL解码（处理中文和特殊字符）
@@ -439,30 +441,47 @@ async def get_chapter_content(
                 paragraph_end=True
             )
 
-        # 从起始位置开始查找段落结尾
-        # 段落结尾定义为：换行符或连续的换行符后的第一个非空内容开始位置
         start_pos = position
-        end_pos = len(text)
+        end_pos = position
+        text_length = len(text)
 
-        # 查找下一个段落分隔符（双换行或文件结尾）
-        remaining_text = text[position:]
+        # 不断读取段落，直到满足最小长度或到达文件结尾
+        while end_pos < text_length:
+            remaining = text[end_pos:]
 
-        # 查找双换行符（段落分隔符）
-        paragraph_end = remaining_text.find('\n\n')
-        if paragraph_end != -1:
-            end_pos = position + paragraph_end + 2  # 包含换行符
-        else:
-            # 查找单换行符（行分隔符）
-            line_end = remaining_text.find('\n')
-            if line_end != -1:
-                end_pos = position + line_end + 1
+            # 查找段落分隔符（双换行符）
+            paragraph_sep = remaining.find('\n\n')
+
+            if paragraph_sep != -1:
+                # 找到段落分隔符，包含分隔符
+                next_end = end_pos + paragraph_sep + 2
             else:
-                # 没有换行符，返回到文件结尾
-                end_pos = len(text)
+                # 没有双换行符，查找单换行符或直接到结尾
+                line_sep = remaining.find('\n')
+                if line_sep != -1:
+                    next_end = end_pos + line_sep + 1
+                else:
+                    next_end = text_length
 
-        # 如果位置很小且没有找到换行符，返回一段合理长度的内容
-        if end_pos - start_pos > 2000:
-            end_pos = start_pos + 2000
+            # 检查当前片段满足条件
+            current_size = next_end - start_pos
+
+            if current_size >= min_size and (next_end >= text_length or '\n\n' in text[end_pos:next_end]):
+                # 满足最小长度且到达段落结尾，返回
+                end_pos = next_end
+                break
+
+            # 如果已经是文件结尾，直接返回
+            if next_end >= text_length:
+                end_pos = text_length
+                break
+
+            # 继续读取下一段落
+            end_pos = next_end
+
+            # 安全限制：最多读取 50000 字符
+            if end_pos - start_pos > 50000:
+                break
 
         content = text[start_pos:end_pos]
 
@@ -472,7 +491,9 @@ async def get_chapter_content(
             text=content,
             start_position=start_pos,
             end_position=end_pos,
-            paragraph_end=(end_pos >= len(text) or text[end_pos-2:end_pos] == '\n\n' or text[end_pos-1:end_pos] == '\n')
+            paragraph_end=(end_pos >= text_length or
+                           (end_pos >= 2 and text[end_pos-2:end_pos] == '\n\n') or
+                           (end_pos >= 1 and text[end_pos-1:end_pos] == '\n'))
         )
 
     except HTTPException:
