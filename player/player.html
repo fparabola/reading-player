@@ -353,18 +353,6 @@
             color: #888;
         }
 
-        .speed-range {
-            width: 180px;
-            accent-color: #667eea;
-            cursor: pointer;
-        }
-        .speed-value {
-            font-size: 12px;
-            color: #bbb;
-            min-width: 60px;
-            text-align: right;
-        }
-
         .switch {
             position: relative;
             display: inline-flex;
@@ -408,98 +396,14 @@
             transform: translateX(20px);
         }
 
-        /* 悬浮播放控制 */
-        .floating-controls {
-            position: fixed;
-            right: 20px;
-            bottom: 20px;
-            background: rgba(20, 20, 34, 0.92);
-            border: 1px solid #30304f;
-            border-radius: 14px;
-            padding: 10px;
-            z-index: 30;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-            user-select: none;
-        }
-
-        .floating-body {
+        /* 播放窗口内控制条 */
+        .player-controls {
+            width: 100%;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             gap: 12px;
-        }
-
-        .floating-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 8px;
-            cursor: grab;
-            touch-action: none;
-        }
-
-        .floating-header:active {
-            cursor: grabbing;
-        }
-
-        .floating-title {
-            font-size: 12px;
-            color: #bbb;
-        }
-
-        .floating-toggle {
-            background: #2a2a4e;
-            color: #eee;
-            border: 1px solid #3a3a66;
-            border-radius: 8px;
-            padding: 4px 8px;
-            font-size: 12px;
-            cursor: pointer;
-            width: auto;
-            height: auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .floating-controls.collapsed .speed-control {
-            display: none;
-        }
-
-        .floating-controls.collapsed #btnBeginning,
-        .floating-controls.collapsed #btnPrev,
-        .floating-controls.collapsed #btnNext,
-        .floating-controls.collapsed #btnEnd {
-            display: none;
-        }
-
-        .floating-controls.collapsed .control-buttons {
-            justify-content: center;
-        }
-
-        .floating-controls.collapsed #btnPrev,
-        .floating-controls.collapsed #btnNext {
-            display: inline-flex;
-        }
-
-        .floating-controls .control-buttons {
-            gap: 10px;
-        }
-
-        .floating-controls .btn {
-            padding: 10px 14px;
-        }
-
-        .floating-controls.collapsed #btnPlay {
-            width: 54px;
-            height: 54px;
-            border-radius: 50%;
-            justify-content: center;
-        }
-
-        .floating-controls.collapsed #btnPlay svg {
-            width: 24px;
-            height: 24px;
+            margin-top: 12px;
         }
 
         /* 加载动画 */
@@ -577,10 +481,6 @@
                 min-width: 120px;
                 font-size: 12px;
             }
-            .floating-controls {
-                right: 12px;
-                bottom: 12px;
-            }
         }
 
         @media (max-width: 480px) {
@@ -606,6 +506,11 @@
                 <select id="chapterSelect" onchange="onChapterChange()" disabled>
                     <option value="">-- 选择章节 Select Chapter --</option>
                 </select>
+                <label>朗读 TTS:</label>
+                <label class="switch">
+                    <input type="checkbox" id="ttsToggle" onchange="toggleTts()">
+                    <span class="switch-slider"></span>
+                </label>
                 <button class="btn btn-primary" onclick="loadChapter()" id="btnLoad" disabled>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -630,6 +535,35 @@
                 <p style="font-size: 14px;">Please select a book and chapter to start playing</p>
             </div>
             <div class="sentence-display" id="sentenceDisplay"></div>
+            <div class="player-controls">
+                <button class="btn btn-secondary" onclick="gotoBeginning()" id="btnBeginning" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="19 20 9 12 19 4 19 20"/>
+                        <line x1="5" y1="19" x2="5" y2="5"/>
+                    </svg>
+                </button>
+                <button class="btn btn-secondary" onclick="previousPage()" id="btnPrev" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="15 18 9 12 15 6 15 18"/>
+                    </svg>
+                </button>
+                <button class="btn btn-success" onclick="togglePlay()" id="btnPlay" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                </button>
+                <button class="btn btn-secondary" onclick="nextPage()" id="btnNext" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="9 18 15 12 9 6 9 18"/>
+                    </svg>
+                </button>
+                <button class="btn btn-secondary" onclick="gotoEnd()" id="btnEnd" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 4 15 12 5 20 5 4"/>
+                        <line x1="19" y1="5" x2="19" y2="19"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -701,65 +635,6 @@
         </div>
     </div>
 
-    <!-- 悬浮播放控制 -->
-    <div class="floating-controls" id="floatingControls">
-        <div class="floating-header" id="floatingDragHandle">
-            <span class="floating-title">播放控制</span>
-            <button class="floating-toggle" id="floatingToggle">折叠</button>
-        </div>
-        <div class="floating-body">
-            <div class="speed-control">
-                <label>播放速度 Speed:</label>
-                <input
-                    id="speedRange"
-                    class="speed-range"
-                    type="range"
-                    min="500"
-                    max="30000"
-                    step="100"
-                    value="1500"
-                    oninput="setSpeed(parseInt(this.value, 10))"
-                />
-                <span class="speed-value" id="speedValue">1.5s</span>
-            </div>
-            <div class="speed-control">
-                <label>朗读 TTS:</label>
-                <label class="switch">
-                    <input type="checkbox" id="ttsToggle" onchange="toggleTts()">
-                    <span class="switch-slider"></span>
-                </label>
-            </div>
-            <div class="control-buttons">
-                <button class="btn btn-secondary" onclick="gotoBeginning()" id="btnBeginning" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="19 20 9 12 19 4 19 20"/>
-                        <line x1="5" y1="19" x2="5" y2="5"/>
-                    </svg>
-                </button>
-                <button class="btn btn-secondary" onclick="previousPage()" id="btnPrev" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="15 18 9 12 15 6 15 18"/>
-                    </svg>
-                </button>
-                <button class="btn btn-success" onclick="togglePlay()" id="btnPlay" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
-                        <polygon points="5 3 19 12 5 21 5 3"/>
-                    </svg>
-                </button>
-                <button class="btn btn-secondary" onclick="nextPage()" id="btnNext" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="9 18 15 12 9 6 9 18"/>
-                    </svg>
-                </button>
-                <button class="btn btn-secondary" onclick="gotoEnd()" id="btnEnd" disabled>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="5 4 15 12 5 20 5 4"/>
-                        <line x1="19" y1="5" x2="19" y2="19"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </div>
 
     <script>
         const API_URL = 'http://localhost:8000';
@@ -805,7 +680,6 @@
 
         function initUI() {
             initTopPanel();
-            initFloatingControls();
             updateTtsUI();
             initAutoAnalyze();
             initAnalysisModel();
@@ -918,141 +792,6 @@
             });
         }
 
-        function initFloatingControls() {
-            const panel = document.getElementById('floatingControls');
-            const handle = document.getElementById('floatingDragHandle');
-            const toggle = document.getElementById('floatingToggle');
-            if (!panel || !handle || !toggle) return;
-
-            updateSpeedUI(playSpeed);
-
-            const loadPosition = () => {
-                try {
-                    const saved = localStorage.getItem('floating_controls_position');
-                    if (!saved) return;
-                    const data = JSON.parse(saved);
-                    if (typeof data.left === 'number' && typeof data.top === 'number') {
-                        panel.style.left = `${Math.max(0, data.left)}px`;
-                        panel.style.top = `${Math.max(0, data.top)}px`;
-                        panel.style.right = 'auto';
-                        panel.style.bottom = 'auto';
-                    }
-                } catch (err) {
-                    // ignore
-                }
-            };
-
-            const savePosition = () => {
-                const rect = panel.getBoundingClientRect();
-                localStorage.setItem('floating_controls_position', JSON.stringify({
-                    left: Math.round(rect.left),
-                    top: Math.round(rect.top)
-                }));
-            };
-
-            const loadCollapsed = () => {
-                try {
-                    const saved = localStorage.getItem('floating_controls_collapsed');
-                    if (saved === '1') {
-                        panel.classList.add('collapsed');
-                        toggle.textContent = '展开';
-                    } else {
-                        panel.classList.remove('collapsed');
-                        toggle.textContent = '折叠';
-                    }
-                } catch (err) {
-                    // ignore
-                }
-            };
-
-            const saveCollapsed = () => {
-                localStorage.setItem(
-                    'floating_controls_collapsed',
-                    panel.classList.contains('collapsed') ? '1' : '0'
-                );
-            };
-
-            toggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                panel.classList.toggle('collapsed');
-                const isCollapsed = panel.classList.contains('collapsed');
-                toggle.textContent = isCollapsed ? '展开' : '折叠';
-                saveCollapsed();
-            });
-
-            let isDragging = false;
-            let startX = 0;
-            let startY = 0;
-            let startLeft = 0;
-            let startTop = 0;
-            let panelWidth = 0;
-            let panelHeight = 0;
-
-            handle.addEventListener('pointerdown', (e) => {
-                if (e.button !== 0) return;
-                if (e.target && e.target.closest && e.target.closest('#floatingToggle')) return;
-                isDragging = true;
-                handle.style.cursor = 'grabbing';
-                const rect = panel.getBoundingClientRect();
-                panelWidth = rect.width;
-                panelHeight = rect.height;
-                startX = e.clientX;
-                startY = e.clientY;
-                startLeft = rect.left;
-                startTop = rect.top;
-                handle.setPointerCapture(e.pointerId);
-            });
-
-            handle.addEventListener('pointermove', (e) => {
-                if (!isDragging) return;
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                const maxLeft = Math.max(0, window.innerWidth - panelWidth);
-                const maxTop = Math.max(0, window.innerHeight - panelHeight);
-                const left = Math.min(maxLeft, Math.max(0, startLeft + dx));
-                const top = Math.min(maxTop, Math.max(0, startTop + dy));
-
-                panel.style.left = `${left}px`;
-                panel.style.top = `${top}px`;
-                panel.style.right = 'auto';
-                panel.style.bottom = 'auto';
-            });
-
-            const endDrag = (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                handle.style.cursor = '';
-                try {
-                    if (e && typeof e.pointerId === 'number') {
-                        handle.releasePointerCapture(e.pointerId);
-                    }
-                } catch (err) {
-                    // ignore
-                }
-                savePosition();
-            };
-
-            handle.addEventListener('pointerup', endDrag);
-            handle.addEventListener('pointercancel', endDrag);
-            handle.addEventListener('lostpointercapture', endDrag);
-            window.addEventListener('pointerup', endDrag);
-
-            window.addEventListener('resize', () => {
-                if (panel.style.left || panel.style.top) {
-                    const rect = panel.getBoundingClientRect();
-                    const maxLeft = Math.max(0, window.innerWidth - rect.width);
-                    const maxTop = Math.max(0, window.innerHeight - rect.height);
-                    panel.style.left = `${Math.min(maxLeft, Math.max(0, rect.left))}px`;
-                    panel.style.top = `${Math.min(maxTop, Math.max(0, rect.top))}px`;
-                    panel.style.right = 'auto';
-                    panel.style.bottom = 'auto';
-                    savePosition();
-                }
-            });
-
-            loadPosition();
-            loadCollapsed();
-        }
 
         function clampSentenceIndex(index, sentences) {
             if (!Array.isArray(sentences) || sentences.length === 0) return 0;
@@ -1439,24 +1178,6 @@ async function onBookChange() {
             document.getElementById('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
             document.getElementById('btnPlay').classList.add('btn-success');
             document.getElementById('btnPlay').classList.remove('btn-danger');
-        }
-
-        function updateSpeedUI(speed) {
-            const speedRange = document.getElementById('speedRange');
-            const speedValue = document.getElementById('speedValue');
-            if (speedRange) speedRange.value = speed;
-            if (speedValue) speedValue.textContent = `${(speed / 1000).toFixed(1)}s`;
-        }
-
-        // 设置速度
-        function setSpeed(speed) {
-            playSpeed = speed;
-            updateSpeedUI(speed);
-
-            if (isPlaying) {
-                pause();
-                play();
-            }
         }
 
         function ttsRateFromSpeed(speedMs) {
