@@ -936,11 +936,34 @@
                 }));
             };
 
+            const loadCollapsed = () => {
+                try {
+                    const saved = localStorage.getItem('floating_controls_collapsed');
+                    if (saved === '1') {
+                        panel.classList.add('collapsed');
+                        toggle.textContent = '展开';
+                    } else {
+                        panel.classList.remove('collapsed');
+                        toggle.textContent = '折叠';
+                    }
+                } catch (err) {
+                    // ignore
+                }
+            };
+
+            const saveCollapsed = () => {
+                localStorage.setItem(
+                    'floating_controls_collapsed',
+                    panel.classList.contains('collapsed') ? '1' : '0'
+                );
+            };
+
             toggle.addEventListener('click', (e) => {
                 e.stopPropagation();
                 panel.classList.toggle('collapsed');
                 const isCollapsed = panel.classList.contains('collapsed');
                 toggle.textContent = isCollapsed ? '展开' : '折叠';
+                saveCollapsed();
             });
 
             let isDragging = false;
@@ -1014,6 +1037,7 @@
             });
 
             loadPosition();
+            loadCollapsed();
         }
 
         function clampSentenceIndex(index, sentences) {
