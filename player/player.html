@@ -82,6 +82,9 @@
             justify-content: center;
             position: relative;
             border-bottom: 3px solid #667eea;
+            position: sticky;
+            top: var(--top-panel-height, 0px);
+            z-index: 10;
         }
 
         .subtitle-container {
@@ -804,6 +807,8 @@
             initFloatingControls();
             updateTtsUI();
             initAutoAnalyze();
+            updateTopPanelHeight();
+            window.addEventListener('resize', updateTopPanelHeight);
             ttsAudio.addEventListener('ended', async () => {
                 if (ttsEnabled && isPlaying) {
                     await nextPage();
@@ -907,6 +912,7 @@
                 panel.classList.toggle('collapsed');
                 const isCollapsed = panel.classList.contains('collapsed');
                 toggle.textContent = isCollapsed ? '展开' : '收起';
+                updateTopPanelHeight();
             });
         }
 
@@ -1507,6 +1513,13 @@ async function onBookChange() {
             if (autoAnalyzeEnabled) {
                 analyzeCurrent();
             }
+        }
+
+        function updateTopPanelHeight() {
+            const panel = document.getElementById('topPanel');
+            if (!panel) return;
+            const height = panel.offsetHeight || 0;
+            document.documentElement.style.setProperty('--top-panel-height', `${height}px`);
         }
 
         function toggleTts() {
