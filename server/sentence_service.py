@@ -8,7 +8,7 @@
 - 章节内容接口：获取章节的片段内容
 """
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import re
@@ -699,6 +699,80 @@ async def analyze_text(request: AnalyzeRequest):
         vocabulary="",
         grammar=""
     )
+
+
+@app.post("/analyze_stream")
+async def analyze_text_stream(request: AnalyzeRequest):
+    api_key = os.getenv("SILICONFLOW_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY")
+
+    prompt = (
+        "请对下面这句话做中文解析，使用 Markdown 输出，包含以下三段标题：\n"
+        "## 整句释义\n"
+        "## 生词解释\n"
+        "## 语法分析\n\n"
+        f"句子：{request.text}"
+    )
+
+    payload = {
+        "model": "Pro/zai-org/GLM-4.7",
+        "messages": [
+            {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.3,
+        "stream": True
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    def stream_generator():
+        full_text = []
+        try:
+            log_line("stream request start")
+            resp = requests.post(
+                "https://api.siliconflow.cn/v1/chat/completions",
+                headers=headers,
+                data=json.dumps(payload),
+                stream=True,
+                timeout=60
+            )
+            if resp.status_code != 200:
+                log_line(f"LLM status={resp.status_code} body={resp.text}")
+                yield ""
+                return
+            resp.encoding = "utf-8"
+
+            for raw_line in resp.iter_lines(decode_unicode=True):
+                if not raw_line:
+                    continue
+                line = raw_line.strip()
+                if not line.startswith("data:"):
+                    continue
+                data = line[len("data:"):].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content")
+                    if not delta:
+                        continue
+                    full_text.append(delta)
+                    yield delta
+                except Exception:
+                    continue
+        except Exception as e:
+            log_line(f"LLM stream exception: {str(e)}")
+            log_line(traceback.format_exc())
+        finally:
+            if full_text:
+                log_line(f"LLM response: {''.join(full_text)}")
+
+    return StreamingResponse(stream_generator(), media_type="text/plain; charset=utf-8")
 
 
 if __name__ == "__main__":
