@@ -20,7 +20,21 @@ server/
 
 ## 功能特性
 
-### 1. 分句服务 (`/split`)
+### 1. 书籍目录服务 (`/books`)
+
+获取 `resource/` 目录中的所有书籍及其章节信息。
+
+**目录结构要求：**
+```
+resource/
+    书名1/
+        章节1.txt
+        章节2.txt
+    书名2/
+        章节1.txt
+```
+
+### 2. 分句服务 (`/split`)
 
 支持两种分句算法：
 
@@ -29,7 +43,11 @@ server/
 | 规则算法 | `r` | 基于标点符号和规则的智能分句（默认） |
 | NLTK 算法 | `n` | 使用 NLTK 库的 SentTokenizer |
 
-### 2. 健康检查 (`/health`)
+### 3. 章节内容服务 (`/chapter/{book_name}/{chapter_name}`)
+
+获取章节的文本内容，支持从指定位置读取到段落结尾。
+
+### 4. 健康检查 (`/health`)
 
 检查服务是否在线运行。
 
@@ -131,7 +149,87 @@ GET /health
 
 ```json
 {
-  "status": "healthy"
+  "status": "healthy",
+  "nltk_available": true
+}
+```
+
+### 获取所有书籍接口
+
+**请求:**
+
+```http
+GET /books
+```
+
+**响应:**
+
+```json
+{
+  "books": [
+    {
+      "name": "哈利波特1-7英文原版",
+      "chapters": [
+        {"name": "1.Harry Potter and the Sorcerer's Stone.txt"},
+        {"name": "2.CHAPTER ONE.txt"}
+      ]
+    }
+  ]
+}
+```
+
+### 获取书籍章节接口
+
+**请求:**
+
+```http
+GET /chapter/{book_name}
+```
+
+**参数:**
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `book_name` | 书名（文件夹名，URL编码） | `哈利波特1-7英文原版` |
+
+**响应:**
+
+```json
+{
+  "book_name": "哈利波特1-7英文原版",
+  "chapters": [
+    {"name": "1.Harry Potter and the Sorcerer's Stone.txt"},
+    {"name": "2.CHAPTER ONE.txt"}
+  ]
+}
+```
+
+### 获取章节内容接口
+
+**请求:**
+
+```http
+GET /chapter/{book_name}/{chapter_name}?position=0
+```
+
+**参数:**
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `book_name` | path | 是 | 书名（文件夹名，URL编码） |
+| `chapter_name` | path | 是 | 章节名（txt文件名，URL编码） |
+| `position` | query | 否 | 起始位置（字符索引），默认0 |
+
+**响应:**
+
+```json
+{
+  "book_name": "哈利波特1-7英文原版",
+  "chapter_name": "1.Harry Potter and the Sorcerer's Stone.txt",
+  "text": "这里是从指定位置开始到段落结尾的文本内容...",
+  "start_position": 0,
+  "end_position": 250,
+  "paragraph_end": false
 }
 ```
 
@@ -171,6 +269,14 @@ python test_harry_potter.py
 ```bash
 python test_debug.py
 ```
+
+### 测试章节API接口
+
+```bash
+python test_chapter_api.py
+```
+
+测试书籍目录和章节内容获取接口。
 
 ## 日志
 
