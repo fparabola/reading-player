@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分句服务测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .form-group textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+        }
+        .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+        .btn-container { display: flex; gap: 10px; }
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            flex: 1;
+        }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-primary:disabled { background: #a0a0a0; cursor: not-allowed; }
+        .btn-secondary { background: #f0f0f0; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-sample { background: #764ba2; color: white; }
+        .btn-sample:hover { background: #6a3f91; }
+        .result-section { display: none; }
+        .result-section.show { display: block; }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .result-header span { font-weight: 600; color: #333; }
+        .sentence-list { max-height: 400px; overflow-y: auto; }
+        .sentence-item {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            border-left: 3px solid #667eea;
+        }
+        .sentence-number {
+            background: #667eea;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .sentence-text { flex: 1; font-size: 14px; color: #333; line-height: 1.5; }
+        .sentence-mark {
+            background: #e0e0e0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .stats { display: flex; gap: 20px; margin-bottom: 15px; }
+        .stat-item {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 6px;
+            text-align: center;
+            flex: 1;
+        }
+        .stat-label { font-size: 12px; color: #666; margin-bottom: 4px; }
+        .stat-value { font-size: 24px; font-weight: 700; color: #667eea; }
+        .status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status.online { background: #d4edda; color: #155724; }
+        .status.local { background: #cce5ff; color: #004085; }
+        .status.offline { background: #f8d7da; color: #721c24; }
+        .mode-indicator {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>分句服务测试</h1>
+            <p>Sentence Splitter API Test</p>
+            <p style="margin-top: 8px;">
+                服务状态 Service Status: <span id="serviceStatus" class="status">检查中...</span>
+            </p>
+            <p class="mode-indicator" id="modeIndicator"></p>
+            <p class="mode-indicator" style="margin-top: 20px;">
+                管理脚本 Service Manager:
+                <br>
+                <code>python service_manager.py start</code> - 启动
+                <br>
+                <code>python service_manager.py stop</code> - 停止
+                <br>
+                <code>python service_manager.py restart</code> - 重启
+                <br>
+                <code>python service_manager.py status</code> - 状态
+                <br>
+                或双击 <code>manage.bat</code> 使用菜单
+            </p>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label for="language">语言 Language</label>
+                <select id="language">
+                    <option value="en">English (英文)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="method">算法 Method</label>
+                <select id="method">
+                    <option value="r">规则算法 Rule-based (默认)</option>
+                    <option value="n">NLTK算法 NLTK Tokenizer</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="text">输入文本 Input Text</label>
+                <textarea id="text" placeholder="请输入要分句的文本..."></textarea>
+            </div>
+
+            <div class="btn-container">
+                <button class="btn btn-primary" id="splitBtn" onclick="splitText()">
+                    分句 Split
+                </button>
+                <button class="btn btn-secondary" onclick="clearText()">
+                    清空 Clear
+                </button>
+                <button class="btn btn-sample" onclick="loadSample()">
+                    示例 Sample
+                </button>
+            </div>
+
+            <div id="error"></div>
+        </div>
+
+        <div class="card result-section" id="resultSection">
+            <div class="result-header">
+                <div>
+                    <span>分句结果 Results</span>
+                    <span style="font-size: 12px; color: #666; margin-left: 10px;">算法: <span id="methodUsed">-</span></span>
+                </div>
+                <button class="btn btn-secondary" style="padding: 6px 15px; font-size: 12px;" onclick="copyResults()">
+                    复制结果 Copy
+                </button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-label">总句数 Total</div>
+                    <div class="stat-value" id="totalCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">句号 Period</div>
+                    <div class="stat-value" id="periodCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">感叹号 Exclamation</div>
+                    <div class="stat-value" id="exclaimCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">问号 Question</div>
+                    <div class="stat-value" id="questionCount">0</div>
+                </div>
+            </div>
+
+            <div class="sentence-list" id="sentenceList"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let apiOnline = false;
+
+        // 英文缩写列表
+        const ABBREVIATIONS = new Set([
+            'mr', 'mrs', 'ms', 'dr', 'prof', 'rev', 'gen', 'rep', 'sen', 'gov',
+            'capt', 'col', 'maj', 'lt', 'sgt', 'pvt', 'st', 'ave', 'blvd', 'rd',
+            'jan', 'feb', 'mar', 'apr', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+            'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun',
+            'etc', 'eg', 'ie', 'vs', 'approx', 'no', 'tel', 'fax',
+            'vol', 'chap', 'p', 'pp', 'et', 'al', 'ps', 'pps'
+        ]);
+
+        // 本地JavaScript分句算法
+        function splitSentencesLocal(text) {
+            if (!text || !text.trim()) return [];
+
+            let normalized = text.replace(/\r\n|\r|\n/g, ' ').replace(/\s+/g, ' ').trim();
+            const sentences = [];
+            let start = 0, i = 0;
+            const n = normalized.length;
+
+            while (i < n) {
+                const char = normalized[i];
+
+                // 跳过引号
+                if (char === '"') {
+                    const nextQuote = normalized.indexOf('"', i + 1);
+                    i = nextQuote === -1 ? n - 1 : nextQuote;
+                    i++;
+                    continue;
+                }
+
+                // 查找句结束符
+                if (char !== '.' && char !== '!' && char !== '?') {
+                    i++;
+                    continue;
+                }
+
+                const endPos = i;
+
+                // 检查紧随其后的字母（如 "Dr.Jones"）
+                let j = i + 1;
+                while (j < n && /[a-zA-Z]/.test(normalized[j])) j++;
+                if (j > i + 1) {
+                    i = j - 1;
+                    i++;
+                    continue;
+                }
+
+                // 检查省略号 "..."
+                if (i + 2 < n && normalized[i+1] === '.' && normalized[i+2] === '.') {
+                    i += 3;
+                    continue;
+                }
+
+                // 检查是否是缩写
+                let wordStart = i - 1;
+                while (wordStart >= start && normalized[wordStart] !== ' ') wordStart--;
+                wordStart++;
+                const word = normalized.substring(wordStart, i).toLowerCase();
+
+                if (ABBREVIATIONS.has(word) || /^[a-zA-Z]$/.test(normalized.substring(wordStart, i))) {
+                    i++;
+                    continue;
+                }
+
+                // 检查后面是否是新句开始
+                j = i + 1;
+                while (j < n && /\s/.test(normalized[j])) j++;
+
+                if (j < n) {
+                    const nextChar = normalized[j];
+                    if (!(/[A-Z]/.test(nextChar) || nextChar === '"' || /\d/.test(nextChar))) {
+                        i++;
+                        continue;
+                    }
+                }
+
+                i++;
+                const sentence = normalized.substring(start, i).trim();
+                if (sentence) sentences.push(sentence);
+
+                start = i;
+                while (start < n && /\s/.test(normalized[start])) start++;
+                i = start;
+            }
+
+            if (start < n) {
+                const sentence = normalized.substring(start).trim();
+                if (sentence) sentences.push(sentence);
+            }
+
+            return sentences;
+        }
+
+        // 检查服务状态
+        async function checkHealth() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+                const res = await fetch(`${API_URL}/health`, {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                const data = await res.json();
+                if (data.status === 'healthy') {
+                    apiOnline = true;
+                    document.getElementById('serviceStatus').textContent = '服务在线 Online';
+                    document.getElementById('serviceStatus').className = 'status online';
+                    document.getElementById('modeIndicator').textContent = '当API可用时优先使用API，否则使用本地处理';
+                    return true;
+                }
+            } catch (e) {
+            }
+            apiOnline = false;
+            document.getElementById('serviceStatus').textContent = '本地模式 Local Mode';
+            document.getElementById('serviceStatus').className = 'status local';
+            document.getElementById('modeIndicator').textContent = 'API不可用，使用JavaScript本地处理';
+            return false;
+        }
+
+        // 分句
+        async function splitText() {
+            const text = document.getElementById('text').value.trim();
+            const language = document.getElementById('language').value;
+            const method = document.getElementById('method').value;
+            const splitBtn = document.getElementById('splitBtn');
+            const errorDiv = document.getElementById('error');
+            const resultSection = document.getElementById('resultSection');
+
+            if (!text) {
+                errorDiv.innerHTML = '<div class="error">请输入文本 Please enter text</div>';
+                resultSection.classList.remove('show');
+                return;
+            }
+
+            errorDiv.innerHTML = '';
+            splitBtn.disabled = true;
+            splitBtn.innerHTML = '<span class="spinner"></span>处理中 Processing...';
+
+            try {
+                let result;
+                if (apiOnline) {
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+                        const res = await fetch(`${API_URL}/split`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text, language, method }),
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+
+                        if (!res.ok) throw new Error('API failed');
+                        result = await res.json();
+                    } catch (e) {
+                        console.log('API failed, using local:', e);
+                        result = { sentences: splitSentencesLocal(text), count: 0, method: 'local' };
+                        result.count = result.sentences.length;
+                    }
+                } else {
+                    result = { sentences: splitSentencesLocal(text), count: 0, method: 'local' };
+                    result.count = result.sentences.length;
+                }
+
+                displayResults(result);
+            } catch (e) {
+                errorDiv.innerHTML = `<div class="error">错误 Error: ${e.message}</div>`;
+                resultSection.classList.remove('show');
+            } finally {
+                splitBtn.disabled = false;
+                splitBtn.textContent = '分句 Split';
+            }
+        }
+
+        // 显示结果
+        function displayResults(data) {
+            const resultSection = document.getElementById('resultSection');
+            const sentenceList = document.getElementById('sentenceList');
+
+            let periodCount = 0, exclaimCount = 0, questionCount = 0;
+
+            const listHtml = data.sentences.map((sent, idx) => {
+                const mark = sent.trim().slice(-1) || '';
+                if (mark === '.') periodCount++;
+                else if (mark === '!') exclaimCount++;
+                else if (mark === '?') questionCount++;
+
+                return `
+                    <div class="sentence-item">
+                        <div class="sentence-number">${idx + 1}</div>
+                        <div class="sentence-text">${escapeHtml(sent)}</div>
+                        <div class="sentence-mark">${mark}</div>
+                    </div>
+                `;
+            }).join('');
+
+            sentenceList.innerHTML = listHtml;
+            document.getElementById('totalCount').textContent = data.count;
+            document.getElementById('periodCount').textContent = periodCount;
+            document.getElementById('exclaimCount').textContent = exclaimCount;
+            document.getElementById('questionCount').textContent = questionCount;
+            document.getElementById('methodUsed').textContent = data.method || '-';
+
+            resultSection.classList.add('show');
+        }
+
+        // 清空文本
+        function clearText() {
+            document.getElementById('text').value = '';
+            document.getElementById('error').innerHTML = '';
+            document.getElementById('resultSection').classList.remove('show');
+        }
+
+        // 加载示例
+        function loadSample() {
+            const sampleText = `Mr. and Mrs. Dursley, of number four, Privet Drive, were proud to say that they were perfectly normal, thank you very much. They were the last people you'd expect to be involved in anything strange or mysterious, because they just didn't hold with such nonsense.
+
+Mr. Dursley was the director of a firm called Grunnings, which made drills. He was a big, beefy man with hardly any neck, although he did have a very large mustache. Mrs. Dursley was thin and blonde and had nearly twice the usual amount of neck, which came in very useful as she spent so much of her time craning over garden fences, spying on the neighbors.
+
+The Dursleys had a small son called Dudley and in their opinion there was no finer boy anywhere. They had a secret, and their greatest fear was that somebody would discover it. They didn't think they could bear it if anyone found out about the Potters.`;
+
+            document.getElementById('text').value = sampleText;
+        }
+
+        // 复制结果
+        function copyResults() {
+            const sentences = document.querySelectorAll('.sentence-text');
+            const text = Array.from(sentences).map((el, idx) => `${idx + 1}. ${el.textContent}`).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                alert('结果已复制 Results copied!');
+            });
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 页面加载检查服务
+        checkHealth();
+        setInterval(checkHealth, 10000);
+    </script>
+</body>
+</html>

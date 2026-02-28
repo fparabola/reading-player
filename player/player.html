@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文本播放器 | Text Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Microsoft YaHei', sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 播放窗口 */
+        .player-window {
+            width: 100%;
+            height: 50vh;
+            background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .subtitle-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .sentence-display {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 60%;
+        }
+
+        .subtitle-line {
+            font-size: clamp(20px, 4vw, 32px);
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.5;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.8);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 控制区域 */
+        .controls-section {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .progress-info {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .progress-bar {
+            width: 90%;
+            max-width: 800px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        /* 控制按钮 */
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #333;
+            color: #eee;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #444;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        /* 文件上传 */
+        .upload-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .selected-file {
+            font-size: 14px;
+            color: #888;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* 播放速度控制 */
+        .speed-control {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .speed-control label {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .speed-btn {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .speed-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 错误提示 */
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 18px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .btn {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            .subtitle-line {
+                font-size: clamp(16px, 5vw, 24px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 播放窗口 -->
+    <div class="player-window">
+        <div class="subtitle-container" id="subtitleContainer">
+            <div class="empty-state" id="emptyState">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 19V6l12 7-12 7z"/>
+                    <path d="M3 6v12l12-7-12-7z" style="opacity:0.5"/>
+                </svg>
+                <p>请选择文本文件开始播放</p>
+                <p style="font-size: 14px;">Please select a text file to start playing</p>
+            </div>
+            <div class="sentence-display" id="sentenceDisplay"></div>
+        </div>
+    </div>
+
+    <!-- 控制区域 -->
+    <div class="controls-section">
+        <!-- 进度信息 -->
+        <div class="progress-info" id="progressInfo">未加载文件 | Not loaded</div>
+
+        <!-- 进度条 -->
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" style="width: 0%"></div>
+        </div>
+
+        <!-- 播放速度控制 -->
+        <div class="speed-control">
+            <label>播放速度 Speed:</label>
+            <button class="btn btn-secondary speed-btn" data-speed="3000" onclick="setSpeed(3000)">慢 3s</button>
+            <button class="btn btn-secondary speed-btn active" data-speed="2000" onclick="setSpeed(2000)">中 2s</button>
+            <button class="btn btn-secondary speed-btn" data-speed="1000" onclick="setSpeed(1000)">快 1s</button>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="control-buttons">
+            <!-- 文件上传 -->
+            <div class="upload-section">
+                <div class="file-input-wrapper">
+                    <button class="btn btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        选择文件 Select File
+                    </button>
+                    <input type="file" id="fileInput" accept=".txt" onchange="handleFile(event)">
+                </div>
+                <span class="selected-file" id="selectedFile">未选择文件</span>
+            </div>
+
+            <!-- 播放控制 -->
+            <button class="btn btn-secondary" onclick="gotoBeginning()" id="btnBeginning" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="19 20 9 12 19 4 19 20"/>
+                    <line x1="5" y1="19" x2="5" y2="5"/>
+                </svg>
+            </button>
+            <button class="btn btn-secondary" onclick="previousPage()" id="btnPrev" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="15 18 9 12 15 6 15 18"/>
+                </svg>
+            </button>
+            <button class="btn btn-success" onclick="togglePlay()" id="btnPlay" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" id="playIcon">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+            </button>
+            <button class="btn btn-secondary" onclick="nextPage()" id="btnNext" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="9 18 15 12 9 6 9 18"/>
+                </svg>
+            </button>
+            <button class="btn btn-secondary" onclick="gotoEnd()" id="btnEnd" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 4 15 12 5 20 5 4"/>
+                    <line x1="19" y1="5" x2="19" y2="19"/>
+                </svg>
+            </button>
+        </div>
+
+        <div id="errorMessage"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        const MAX_SENTENCES_PAGE = 5;
+
+        let allSentences = [];
+        let currentPage = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let playSpeed = 2000; // 毫秒
+        let maxSentencesPerPage = MAX_SENTENCES_PAGE;
+
+        // 初始化最大句子数
+        function initMaxSentences() {
+            const windowHeight = window.innerHeight * 0.5;
+            const fontSize = Math.max(20, windowHeight / 15);
+            maxSentencesPerPage = Math.floor((windowHeight * 0.6) / (fontSize * 1.8));
+            maxSentencesPerPage = Math.max(3, Math.min(8, maxSentencesPerPage));
+        }
+
+        initMaxSentences();
+        window.addEventListener('resize', () => {
+            initMaxSentences();
+            if (allSentences.length > 0) displayPage(currentPage);
+        });
+
+        // 处理文件选择
+        async function handleFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('selectedFile').textContent = file.name;
+            showLoading(true);
+            clearError();
+
+            try {
+                const text = await readFile(file);
+                const sentences = await splitText(text);
+                allSentences = sentences;
+                currentPage = 0;
+
+                updateUIState();
+                displayPage(currentPage);
+            } catch (error) {
+                showError('加载文件失败: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 读取文件内容
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file, 'UTF-8');
+            });
+        }
+
+        // 调用分句API
+        async function splitText(text) {
+            try {
+                const response = await fetch(`${API_URL}/split`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        language: 'en',
+                        method: 'r'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('服务器响应错误');
+                }
+
+                const data = await response.json();
+                return data.sentences || [];
+            } catch (error) {
+                console.warn('API调用失败，使用本地分句:', error);
+                return splitLocal(text);
+            }
+        }
+
+        // 本地分句（降级方案）
+        function splitLocal(text) {
+            const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+            return sentences.map(s => s.trim() + '.');
+        }
+
+        // 显示加载状态
+        function showLoading(show) {
+            const container = document.getElementById('subtitleContainer');
+            const emptyState = document.getElementById('emptyState');
+            const sentenceDisplay = document.getElementById('sentenceDisplay');
+
+            if (show) {
+                emptyState.style.display = 'none';
+                sentenceDisplay.innerHTML = '<div class="loading"></div>';
+            }
+        }
+
+        // 显示错误
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // 清除错误
+        function clearError() {
+            document.getElementById('errorMessage').innerHTML = '';
+        }
+
+        // 更新UI状态
+        function updateUIState() {
+            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
+
+            document.getElementById('progressInfo').textContent =
+                `${currentPage + 1} / ${totalPages} 页 | 共 ${allSentences.length} 句`;
+
+            const progress = ((currentPage + 1) / totalPages) * 100;
+            document.querySelector('.progress-fill').style.width = `${progress}%`;
+
+            document.getElementById('btnPlay').disabled = allSentences.length === 0;
+            document.getElementById('btnPrev').disabled = currentPage === 0;
+            document.getElementById('btnBeginning').disabled = currentPage === 0;
+            document.getElementById('btnNext').disabled = currentPage >= totalPages - 1;
+            document.getElementById('btnEnd').disabled = currentPage >= totalPages - 1;
+        }
+
+        // 显示指定页的句子
+        function displayPage(page) {
+            const emptyState = document.getElementById('emptyState');
+            const sentenceDisplay = document.getElementById('sentenceDisplay');
+
+            if (allSentences.length === 0) {
+                emptyState.style.display = 'flex';
+                sentenceDisplay.innerHTML = '';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            const start = page * maxSentencesPerPage;
+            const end = Math.min(start + maxSentencesPerPage, allSentences.length);
+            const pageSentences = allSentences.slice(start, end);
+
+            sentenceDisplay.innerHTML = pageSentences.map((s, i) =>
+                `<div class="subtitle-line" style="animation-delay: ${i * 0.1}s">${escapeHtml(s)}</div>`
+            ).join('');
+
+            updateUIState();
+        }
+
+        // 下一页
+        function nextPage() {
+            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                displayPage(currentPage);
+            } else if (isPlaying) {
+                pause();
+            }
+        }
+
+        // 上一页
+        function previousPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                displayPage(currentPage);
+            }
+        }
+
+        // 跳到开头
+        function gotoBeginning() {
+            currentPage = 0;
+            displayPage(currentPage);
+        }
+
+        // 跳到结尾
+        function gotoEnd() {
+            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
+            currentPage = totalPages - 1;
+            displayPage(currentPage);
+        }
+
+        // 切换播放/暂停
+        function togglePlay() {
+            if (isPlaying) {
+                pause();
+            } else {
+                play();
+            }
+        }
+
+        // 开始播放
+        function play() {
+            if (allSentences.length === 0) return;
+
+            isPlaying = true;
+
+            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
+            if (currentPage >= totalPages - 1) {
+                currentPage = 0;
+                displayPage(currentPage);
+            }
+
+            document.getElementById('playIcon').innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+            document.getElementById('btnPlay').classList.remove('btn-success');
+            document.getElementById('btnPlay').classList.add('btn-danger');
+
+            playInterval = setInterval(() => {
+                nextPage();
+            }, playSpeed);
+        }
+
+        // 暂停播放
+        function pause() {
+            isPlaying = false;
+
+            if (playInterval) {
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+
+            document.getElementById('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+            document.getElementById('btnPlay').classList.add('btn-success');
+            document.getElementById('btnPlay').classList.remove('btn-danger');
+        }
+
+        // 设置播放速度
+        function setSpeed(speed) {
+            playSpeed = speed;
+
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseInt(btn.dataset.speed) === speed) {
+                    btn.classList.add('active');
+                }
+            });
+
+            if (isPlaying) {
+                pause();
+                play();
+            }
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 点击进度条跳转
+        document.getElementById('progressBar').addEventListener('click', (e) => {
+            if (allSentences.length === 0) return;
+
+            const rect = e.target.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percent = clickX / rect.width;
+
+            const totalPages = Math.ceil(allSentences.length / maxSentencesPerPage);
+            currentPage = Math.floor(percent * totalPages);
+            currentPage = Math.max(0, Math.min(totalPages - 1, currentPage));
+
+            displayPage(currentPage);
+        });
+    </script>
+</body>
+</html>
