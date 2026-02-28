@@ -30,6 +30,12 @@ app.add_middleware(
 # 资源目录常量
 RESOURCE_DIR = Path(__file__).parent / "resource"
 
+def chapter_sort_key(name: str) -> tuple:
+    match = re.search(r"\d+", name)
+    if match:
+        return (0, int(match.group()), name.lower())
+    return (1, name.lower())
+
 
 def get_resource_books() -> List[BookInfo]:
     """
@@ -53,9 +59,13 @@ def get_resource_books() -> List[BookInfo]:
             continue
 
         chapters = []
-        for chapter_file in sorted(book_path.iterdir()):
-            if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt':
-                chapters.append(ChapterInfo(name=chapter_file.name))
+        chapter_files = [
+            chapter_file
+            for chapter_file in book_path.iterdir()
+            if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt'
+        ]
+        for chapter_file in sorted(chapter_files, key=lambda p: chapter_sort_key(p.name)):
+            chapters.append(ChapterInfo(name=chapter_file.name))
 
         if chapters:  # 只添加有章节的书籍
             books.append(BookInfo(name=book_path.name, chapters=chapters))
@@ -423,9 +433,13 @@ async def get_book_info(book_name: str):
             raise HTTPException(status_code=404, detail=f"Book not found: {book_name}")
 
         chapters = []
-        for chapter_file in sorted(book_path.iterdir()):
-            if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt':
-                chapters.append({"name": chapter_file.name})
+        chapter_files = [
+            chapter_file
+            for chapter_file in book_path.iterdir()
+            if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt'
+        ]
+        for chapter_file in sorted(chapter_files, key=lambda p: chapter_sort_key(p.name)):
+            chapters.append({"name": chapter_file.name})
 
         return {
             "book_name": book_name,
@@ -454,9 +468,13 @@ async def get_chapters(book_name: str):
             raise HTTPException(status_code=404, detail=f"Book not found: {book_name}")
 
         chapters = []
-        for chapter_file in sorted(book_path.iterdir()):
-            if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt':
-                chapters.append({"name": chapter_file.name})
+        chapter_files = [
+            chapter_file
+            for chapter_file in book_path.iterdir()
+            if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt'
+        ]
+        for chapter_file in sorted(chapter_files, key=lambda p: chapter_sort_key(p.name)):
+            chapters.append({"name": chapter_file.name})
 
         return {
             "book_name": book_name,

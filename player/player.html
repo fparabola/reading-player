@@ -470,14 +470,143 @@
                     option.textContent = book;
                     bookSelect.appendChild(option);
                 });
+
+                // 恢复上次阅读位置
+                const savedPosition = loadReadingPosition();
+                if (savedPosition && savedPosition.book) {
+                    // 查找保存的书是否还在列表中
+                    const bookExists = data.books.find(b => b === savedPosition.book);
+                    if (bookExists) {
+                        bookSelect.value = savedPosition.book;
+                        currentBook = savedPosition.book;
+
+                        // 触发加载章节列表
+                        await onBookChange();
+
+                        if (savedPosition.chapter) {
+                            const chapterSelect = document.getElementById('chapterSelect');
+                            const chapterExists = Array.from(chapterSelect.options).some(opt => opt.value === savedPosition.chapter);
+                            if (chapterExists) {
+                                chapterSelect.value = savedPosition.chapter;
+                                currentChapter = savedPosition.chapter;
+                                await applySavedPosition(savedPosition);
+                            }
+                        }
+                    }
+                }
             } catch (error) {
                 console.error('加载书籍失败:', error);
                 showError('加载书籍列表失败，请确保服务已启动');
             }
         }
 
+
+        // 保存阅读位置到 localStorage
+        function saveReadingPosition() {
+            const position = {
+                book: currentBook,
+                chapter: currentChapter,
+                sentenceIndex: currentSentenceIndex,
+                currentPosition: currentPosition,
+                chapterEndPosition: chapterEndPosition,
+                sentences: currentSentences,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('reading_position', JSON.stringify(position));
+        }
+
+        // 读取上次阅读位置
+        function loadReadingPosition() {
+            try {
+                const saved = localStorage.getItem('reading_position');
+                if (saved) {
+                    return JSON.parse(saved);
+                }
+            } catch (e) {
+                console.warn('读取阅读位置失败:', e);
+            }
+            return null;
+        }
+
+        function clampSentenceIndex(index, sentences) {
+            if (!Array.isArray(sentences) || sentences.length === 0) return 0;
+            const maxIndex = Math.max(0, sentences.length - 1);
+            return Math.max(0, Math.min(index || 0, maxIndex));
+        }
+
+        async function applySavedPosition(savedPosition) {
+            currentPosition = savedPosition.currentPosition || 0;
+            chapterEndPosition = savedPosition.chapterEndPosition || currentPosition;
+            currentSentences = Array.isArray(savedPosition.sentences) ? savedPosition.sentences : [];
+            currentSentenceIndex = clampSentenceIndex(savedPosition.sentenceIndex, currentSentences);
+
+            if (currentSentences.length === 0) {
+                // 没有可恢复的句子内容时，回退到正常加载
+                await loadChapter(savedPosition.currentPosition || 0);
+                return;
+            }
+
+            // 更新UI
+            document.getElementById('chapterNav').style.display = 'flex';
+            document.getElementById('currentChapter').textContent = currentChapter.replace('.txt', '');
+            updateChapterNav();
+            displaySentences();
+            updatePlayButtons();
+
+            // 更新播放按钮图标
+            document.getElementById('playIcon').innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+            document.getElementById('btnPlay').classList.add('btn-success');
+            document.getElementById('btnPlay').classList.remove('btn-danger');
+        }
+
+        // 显示临时通知
+        function showNotification(message, duration = 2000) {
+            // 移除旧的通知
+            const oldNotification = document.getElementById('notification');
+            if (oldNotification) oldNotification.remove();
+
+            const notification = document.createElement('div');
+            notification.id = 'notification';
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(102, 126, 234, 0.9);
+                color: white;
+                padding: 10px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                font-size: 14px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideDown 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, duration);
+        }
+
+        // 添加动画样式
+        const styleSheet = document.createElement('style');
+        styleSheet.textContent = `
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+                to { opacity: 1; transform: translateX(-50%) translateY(0); }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.appendChild(styleSheet);
+
+
         // 书籍改变时加载章节列表
-        async function onBookChange() {
+async function onBookChange() {
             const bookSelect = document.getElementById('bookSelect');
             currentBook = bookSelect.value;
             const chapterSelect = document.getElementById('chapterSelect');
@@ -518,7 +647,7 @@
         }
 
         // 加载章节
-        async function loadChapter() {
+        async function loadChapter(startPosition = 0) {
             if (!currentBook || !currentChapter) {
                 showError('请先选择书籍和章节');
                 return;
@@ -526,7 +655,7 @@
 
             showLoading(true);
             clearError();
-            currentPosition = 0;
+            currentPosition = startPosition;
             currentSentences = [];
             currentSentenceIndex = 0;
             isPlaying = false;
@@ -536,6 +665,7 @@
                 // 获取章节内容
                 const content = await fetchChapterContent(currentBook, currentChapter, currentPosition);
                 chapterEndPosition = content.end_position;
+                currentPosition = content.end_position;
 
                 // 分句
                 const sentences = await splitText(content.text);
@@ -618,6 +748,8 @@
 
             updateProgress();
             updatePlayButtons();
+            // 保存阅读位置
+            saveReadingPosition();
         }
 
         // 更新进度
