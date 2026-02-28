@@ -61,6 +61,11 @@
             padding: 6px 10px;
             font-size: 12px;
             cursor: pointer;
+            width: auto;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .top-panel.collapsed .book-select-section {
@@ -322,6 +327,11 @@
             padding: 4px 8px;
             font-size: 12px;
             cursor: pointer;
+            width: auto;
+            height: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .floating-controls.collapsed .speed-control {
@@ -709,7 +719,8 @@
 
             toggle.addEventListener('click', () => {
                 panel.classList.toggle('collapsed');
-                toggle.textContent = panel.classList.contains('collapsed') ? '展开' : '收起';
+                const isCollapsed = panel.classList.contains('collapsed');
+                toggle.textContent = isCollapsed ? '展开' : '收起';
             });
         }
 
@@ -748,7 +759,8 @@
             toggle.addEventListener('click', (e) => {
                 e.stopPropagation();
                 panel.classList.toggle('collapsed');
-                toggle.textContent = panel.classList.contains('collapsed') ? '展开' : '折叠';
+                const isCollapsed = panel.classList.contains('collapsed');
+                toggle.textContent = isCollapsed ? '展开' : '折叠';
             });
 
             let isDragging = false;
