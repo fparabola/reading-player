@@ -156,6 +156,8 @@ GET /health
 
 ### 获取所有书籍接口
 
+**GET /books** - 获取所有书籍及其章节信息
+
 **请求:**
 
 ```http
@@ -174,6 +176,45 @@ GET /books
         {"name": "2.CHAPTER ONE.txt"}
       ]
     }
+  ]
+}
+```
+
+---
+
+**GET /books/list** - 获取书名列表（仅返回书名）
+
+**请求:**
+
+```http
+GET /books/list
+```
+
+**响应:**
+
+```json
+{
+  "books": ["哈利波特1-7英文原版", "书名2"]
+}
+```
+
+---
+
+**GET /books/{book_name}** - 获取指定书籍的章节
+
+**请求:**
+
+```http
+GET /books/哈利波特1-7英文原版
+```
+
+**响应:**
+
+```json
+{
+  "book_name": "哈利波特1-7英文原版",
+  "chapters": [
+    {"name": "1.Harry Potter and the Sorcerer's Stone.txt"}
   ]
 }
 ```

@@ -119,6 +119,10 @@ class ChapterContentResponse(BaseModel):
     paragraph_end: bool  # 是否到达段落结尾
 
 
+class BookListResponse(BaseModel):
+    books: List[str]  # 书名列表
+
+
 # 英文缩写列表，避免在这些词汇后错误分句
 ENGLISH_ABBREVIATIONS = {
     'mr', 'mrs', 'ms', 'dr', 'prof', 'rev', 'gen', 'rep', 'sen', 'gov',
@@ -354,7 +358,7 @@ async def health_check():
 @app.get("/books", response_model=BooksResponse)
 async def get_books():
     """
-    获取书籍目录接口
+    获取书籍目录接口（包含章节信息）
 
     返回所有书籍及其章节信息
 
@@ -369,6 +373,58 @@ async def get_books():
         return BooksResponse(books=books)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading books: {str(e)}")
+
+
+@app.get("/books/list", response_model=BookListResponse)
+async def get_book_list():
+    """
+    获取书名列表接口（仅返回书名）
+
+    返回 resource 目录下的所有书名
+
+    目录结构：
+        resource/
+            书名1/
+                章节1.txt
+            书名2/
+                章节1.txt
+    """
+    try:
+        books = get_resource_books()
+        book_names = [book.name for book in books]
+        return BookListResponse(books=book_names)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading book list: {str(e)}")
+
+
+@app.get("/books/{book_name}")
+async def get_book_info(book_name: str):
+    """
+    获取指定书籍信息（章节列表）
+
+    与 /chapter/{book_name} 功能相同
+    """
+    try:
+        from urllib.parse import unquote
+        book_name = unquote(book_name)
+
+        book_path = RESOURCE_DIR / book_name
+        if not book_path.exists() or not book_path.is_dir():
+            raise HTTPException(status_code=404, detail=f"Book not found: {book_name}")
+
+        chapters = []
+        for chapter_file in sorted(book_path.iterdir()):
+            if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt':
+                chapters.append({"name": chapter_file.name})
+
+        return {
+            "book_name": book_name,
+            "chapters": chapters
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading book info: {str(e)}")
 
 
 @app.get("/chapter/{book_name}")

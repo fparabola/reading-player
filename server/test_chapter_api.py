@@ -141,6 +141,23 @@ def test_get_chapter_content(book_name, chapter_name):
         print(f"错误信息: {data}")
 
 
+def test_get_book_list():
+    """测试获取书名列表"""
+    print("\n" + "=" * 50)
+    print("测试1b: 获取书名列表 /books/list")
+    print("=" * 50)
+
+    data, status_code = http_get(f"{BASE_URL}/books/list")
+
+    if status_code and data:
+        print(f"状态码: {status_code}")
+        print(f"书名列表: {data.get('books', [])}")
+        return data.get('books', [])
+    else:
+        print(f"请求失败，状态码: {status_code}")
+        return []
+
+
 def main():
     print("=" * 50)
     print("章节 API 测试")
@@ -155,7 +172,10 @@ def main():
         print("服务未运行，请先启动服务")
         return
 
-    # 测试获取书籍
+    # 测试获取书名列表
+    book_list = test_get_book_list()
+
+    # 测试获取书籍（包含章节信息）
     book_name, chapter_name = test_get_books()
 
     # 测试获取书籍章节
