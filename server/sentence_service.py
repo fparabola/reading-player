@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import re
 import os
+import configparser
 from pathlib import Path
 from typing import List, Optional
 import uvicorn
@@ -35,6 +36,8 @@ app.add_middleware(
 # 资源目录常量
 RESOURCE_DIR = Path(__file__).parent / "resource"
 LOG_PATH = Path(__file__).parent / "service.log"
+CONFIG_PATH = Path(__file__).parent / "config.ini"
+_CONFIG_CACHE: Optional[configparser.ConfigParser] = None
 
 def log_line(message: str) -> None:
     try:
@@ -50,10 +53,38 @@ def mask_key(key: str) -> str:
         return "*" * len(key)
     return f"{key[:4]}...{key[-4:]}"
 
+def load_local_config() -> configparser.ConfigParser:
+    global _CONFIG_CACHE
+    if _CONFIG_CACHE is not None:
+        return _CONFIG_CACHE
+
+    parser = configparser.ConfigParser()
+    if not CONFIG_PATH.exists():
+        _CONFIG_CACHE = parser
+        return _CONFIG_CACHE
+
+    try:
+        parser.read(CONFIG_PATH, encoding="utf-8")
+        _CONFIG_CACHE = parser
+    except Exception as e:
+        log_line(f"load config failed: {str(e)}")
+        _CONFIG_CACHE = configparser.ConfigParser()
+    return _CONFIG_CACHE
+
+def get_siliconflow_api_key() -> str:
+    env_key = (os.getenv("SILICONFLOW_API_KEY") or "").strip()
+    if env_key:
+        return env_key
+
+    config = load_local_config()
+    return (config.get("auth", "siliconflow_api_key", fallback="") or "").strip()
+
 @app.on_event("startup")
 async def log_api_key():
-    api_key = os.getenv("SILICONFLOW_API_KEY", "")
-    log_line(f"SILICONFLOW_API_KEY={mask_key(api_key)}")
+    env_key = (os.getenv("SILICONFLOW_API_KEY") or "").strip()
+    api_key = get_siliconflow_api_key()
+    source = "env" if env_key else ("config" if api_key else "missing")
+    log_line(f"SILICONFLOW_API_KEY({source})={mask_key(api_key)}")
 
 async def synthesize_tts(text: str, voice: str, rate: str) -> bytes:
     communicator = edge_tts.Communicate(text=text, voice=voice, rate=rate)
@@ -668,9 +699,9 @@ async def tts(
 
 @app.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_text(request: AnalyzeRequest):
-    api_key = os.getenv("SILICONFLOW_API_KEY")
+    api_key = get_siliconflow_api_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY")
+        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY (env or config.ini)")
 
     prompt = build_analyze_prompt(request.text)
 
@@ -719,9 +750,9 @@ async def analyze_text(request: AnalyzeRequest):
 
 @app.post("/analyze_stream")
 async def analyze_text_stream(request: AnalyzeRequest):
-    api_key = os.getenv("SILICONFLOW_API_KEY")
+    api_key = get_siliconflow_api_key()
     if not api_key:
-        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY")
+        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY (env or config.ini)")
 
     prompt = build_analyze_prompt(request.text)
 
