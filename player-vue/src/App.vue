@@ -224,6 +224,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 const DEFAULT_MIN_SIZE = 500;
 const DEFAULT_BOOK = "哈利波特1-7英文原版";
 const ANALYSIS_MODEL = "Qwen/Qwen3-14B";
+const STORAGE_KEY = "player_vue_reading_state";
 const API_CANDIDATES = process.env.NODE_ENV === "development"
   ? ["/api", "http://localhost:8000", "http://127.0.0.1:8000"]
   : [window.location.origin, "http://localhost:8000", "http://127.0.0.1:8000"];
@@ -259,6 +260,7 @@ let advanceTimer = null;
 let currentAudioUrl = null;
 let playToken = 0;
 const resolvedApiBase = ref("");
+let isRestoringState = false;
 
 const emptySentence = {
   english: "",
@@ -325,6 +327,25 @@ watch(currentSentenceIndex, (value) => {
   progressValue.value = value;
 });
 
+watch(
+  [
+    currentBook,
+    currentChapter,
+    currentSentenceIndex,
+    currentPosition,
+    chapterFinished,
+    playbackRate,
+    ttsEnabled,
+    autoPlayNext,
+    highlightCurrent,
+    () => chapterSentences.value
+  ],
+  () => {
+    persistReadingState();
+  },
+  { deep: true }
+);
+
 watch(playbackRate, async () => {
   if (!isPlaying.value) return;
   stopAudio();
@@ -348,9 +369,19 @@ onBeforeUnmount(() => {
 async function initializePlayer() {
   isInitialLoading.value = true;
   try {
+    const savedState = loadReadingState();
     await loadBooks();
+    if (savedState?.book && bookOptions.value.includes(savedState.book)) {
+      currentBook.value = savedState.book;
+    }
     if (currentBook.value) {
       await loadChapters(currentBook.value);
+    }
+    if (savedState?.chapter && chapterOptions.value.includes(savedState.chapter)) {
+      currentChapter.value = savedState.chapter;
+    }
+    if (applySavedReadingState(savedState)) {
+      return;
     }
     if (currentBook.value && currentChapter.value) {
       await loadChapter({ resetSentences: true });
@@ -706,6 +737,66 @@ function detectLanguage(text) {
 function formatTtsRate(rate) {
   const percent = Math.round((rate - 1) * 100);
   return `${percent >= 0 ? "+" : ""}${percent}%`;
+}
+
+function loadReadingState() {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function applySavedReadingState(savedState) {
+  if (!savedState) return false;
+  if (!savedState.book || !savedState.chapter) return false;
+  if (savedState.book !== currentBook.value || savedState.chapter !== currentChapter.value) return false;
+  if (!Array.isArray(savedState.chapterSentences) || !savedState.chapterSentences.length) return false;
+
+  isRestoringState = true;
+  chapterSentences.value = savedState.chapterSentences;
+  currentPosition.value = Number(savedState.currentPosition || 0);
+  chapterFinished.value = Boolean(savedState.chapterFinished);
+  currentSentenceIndex.value = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
+  progressValue.value = currentSentenceIndex.value;
+  playbackRate.value = clampPlaybackRate(savedState.playbackRate);
+  ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
+  autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
+  highlightCurrent.value = typeof savedState.highlightCurrent === "boolean" ? savedState.highlightCurrent : highlightCurrent.value;
+  isRestoringState = false;
+  return true;
+}
+
+function persistReadingState() {
+  if (isRestoringState) return;
+  const payload = {
+    book: currentBook.value,
+    chapter: currentChapter.value,
+    currentSentenceIndex: currentSentenceIndex.value,
+    currentPosition: currentPosition.value,
+    chapterFinished: chapterFinished.value,
+    chapterSentences: chapterSentences.value,
+    playbackRate: playbackRate.value,
+    ttsEnabled: ttsEnabled.value,
+    autoPlayNext: autoPlayNext.value,
+    highlightCurrent: highlightCurrent.value
+  };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function clampIndex(index, length) {
+  const normalized = Number(index);
+  if (!Number.isFinite(normalized)) return 0;
+  return Math.max(0, Math.min(length - 1, normalized));
+}
+
+function clampPlaybackRate(rate) {
+  const normalized = Number(rate);
+  if (!Number.isFinite(normalized)) return 1.0;
+  return Math.max(0.8, Math.min(1.4, normalized));
 }
 
 function buildApiUrl(path, base = resolvedApiBase.value) {
