@@ -11,6 +11,8 @@
   --yellow: #f9c74f;
   --shadow: 0 28px 80px rgba(3, 6, 20, 0.55);
   --radius-xl: 24px;
+  --slider-thumb-size: 16px;
+  --slider-edge-offset: calc(var(--slider-thumb-size) / 2);
   --font-ui: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-display: Georgia, "Times New Roman", "Songti SC", serif;
 }
@@ -124,7 +126,31 @@ button { border: 0; color: inherit; background: none; }
 .empty-copy { max-width: 700px; font-size: var(--player-empty-size, 16px); }
 
 .transport { justify-content: space-between; gap: 16px; margin-top: 28px; padding: 0 20px; }
+.rate-menu-wrap { position: relative; }
 .rate-chip { display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; border-radius: 16px; cursor: pointer; }
+.rate-chip.active { background: rgba(114, 136, 255, 0.16); border-color: rgba(132, 141, 197, 0.36); }
+.rate-popover {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  display: grid;
+  gap: 8px;
+  min-width: 108px;
+  padding: 10px;
+  border-radius: 16px;
+  z-index: 5;
+}
+.rate-popover-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+}
+.rate-popover-item.active {
+  color: #fff;
+  background: rgba(114, 136, 255, 0.2);
+}
 .rotate { font-size: 16px; }
 .transport-buttons { gap: 18px; }
 .transport-button { width: 56px; height: 56px; border-radius: 50%; cursor: pointer; background: rgba(255, 255, 255, 0.04); color: #f3f5ff; font-size: 22px; }
@@ -133,10 +159,14 @@ button { border: 0; color: inherit; background: none; }
 
 .timeline { margin-top: 18px; padding: 0 20px; }
 .timeline-range, .speed-slider { width: 100%; appearance: none; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); outline: none; }
+.speed-slider {
+  width: calc(100% - (var(--slider-edge-offset) * 2));
+  margin: 0 var(--slider-edge-offset);
+}
 .timeline-range::-webkit-slider-thumb, .speed-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: var(--slider-thumb-size);
+  height: var(--slider-thumb-size);
   border-radius: 50%;
   background: #93a7ff;
   box-shadow: 0 0 0 5px rgba(114, 136, 255, 0.14);
@@ -146,7 +176,8 @@ button { border: 0; color: inherit; background: none; }
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0;
   margin-top: 10px;
-  padding: 0 8px;
+  width: calc(100% - (var(--slider-edge-offset) * 2));
+  margin-left: var(--slider-edge-offset);
 }
 .slider-tick {
   display: flex;

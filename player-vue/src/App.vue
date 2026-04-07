@@ -59,11 +59,25 @@
           </div>
 
           <div class="transport">
-            <button class="rate-chip" type="button" @click="cycleRate">
-              <span class="rotate">⟳</span>
-              <span>{{ formattedPlaybackRate }}x</span>
-              <span>语速</span>
-            </button>
+            <div ref="rateMenuRef" class="rate-menu-wrap">
+              <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
+                <span class="rotate">⟳</span>
+                <span>{{ formattedPlaybackRate }}x</span>
+                <span>语速</span>
+              </button>
+              <div v-if="isRateMenuOpen" class="rate-popover panel">
+                <button
+                  v-for="rate in rateMenuOptions"
+                  :key="rate"
+                  type="button"
+                  class="rate-popover-item"
+                  :class="{ active: numericPlaybackRate === rate }"
+                  @click="selectPlaybackRate(rate)"
+                >
+                  {{ formatPlaybackRateLabel(rate) }}x
+                </button>
+              </div>
+            </div>
 
             <div class="transport-buttons">
               <button class="transport-button" type="button" @click="goToStart" :disabled="!hasSentence">|◀</button>
@@ -234,6 +248,7 @@ const playbackRate = ref(1.0);
 const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
 const audioRef = ref(null);
+const rateMenuRef = ref(null);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
 
@@ -241,6 +256,7 @@ let advanceTimer = null;
 let currentAudioUrl = null;
 let playToken = 0;
 let isRestoringState = false;
+const isRateMenuOpen = ref(false);
 
 const emptySentence = {
   english: "",
@@ -269,6 +285,7 @@ const currentSentence = computed(() => chapterSentences.value[currentSentenceInd
 const fontScaleStyle = computed(() => FONT_SCALE_MAP[fontScaleLevel.value] || FONT_SCALE_MAP.md);
 const numericPlaybackRate = computed(() => clampPlaybackRate(playbackRate.value));
 const formattedPlaybackRate = computed(() => formatPlaybackRateLabel(numericPlaybackRate.value));
+const rateMenuOptions = computed(() => [...rateOptions].sort((a, b) => b - a));
 const vocabularyItems = computed(() =>
   (currentSentence.value.vocabulary || []).map((item) => ({
     ...item,
@@ -317,6 +334,7 @@ watch(playbackRate, async () => {
 });
 
 onMounted(async () => {
+  window.addEventListener("pointerdown", onWindowPointerDown);
   try {
     await initializePlayer();
   } catch (error) {
@@ -325,6 +343,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener("pointerdown", onWindowPointerDown);
   stopPlayback();
 });
 
@@ -637,9 +656,19 @@ function maybePreloadMore() {
   }
 }
 
-function cycleRate() {
-  const index = rateOptions.findIndex((item) => item === playbackRate.value);
-  playbackRate.value = rateOptions[(index + 1) % rateOptions.length];
+function toggleRateMenu() {
+  isRateMenuOpen.value = !isRateMenuOpen.value;
+}
+
+function selectPlaybackRate(rate) {
+  playbackRate.value = rate;
+  isRateMenuOpen.value = false;
+}
+
+function onWindowPointerDown(event) {
+  if (!isRateMenuOpen.value) return;
+  if (rateMenuRef.value?.contains(event.target)) return;
+  isRateMenuOpen.value = false;
 }
 
 function toggleTts() {
