@@ -728,8 +728,10 @@ function lyricsLineClass(index) {
   const distance = Math.abs(index - currentSentenceIndex.value);
   return {
     current: distance === 0,
-    near: distance === 1,
-    far: distance >= 4
+    tier1: distance === 1,
+    tier2: distance === 2,
+    tier3: distance === 3,
+    tier4: distance >= 4
   };
 }
 
