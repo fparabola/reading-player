@@ -51,7 +51,7 @@
 
           <div class="sentence-stage lyrics-stage">
             <template v-if="hasSentence">
-              <div ref="lyricsViewportRef" class="lyrics-viewport">
+              <div ref="lyricsViewportRef" class="lyrics-viewport" @scroll.passive="onLyricsScroll">
                 <div class="lyrics-spacer" :style="{ height: `${topSpacerHeight}px` }"></div>
                 <button
                   v-for="item in visibleSentences"
@@ -60,6 +60,7 @@
                   type="button"
                   class="lyrics-line"
                   :class="lyricsLineClass(item.index)"
+                  :data-tail="item.index === visibleTailIndex ? 'true' : null"
                   @click="jumpToSentence(item.index)"
                 >
                   {{ item.sentence.english }}
@@ -260,10 +261,14 @@ const isPlaying = ref(false);
 const ttsEnabled = ref(true);
 const playbackRate = ref(1.0);
 const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+const LYRICS_SCROLL_EDGE_THRESHOLD = 48;
+const LYRICS_OVERSCAN = 4;
 
 const audioRef = ref(null);
 const rateMenuRef = ref(null);
 const lyricsViewportRef = ref(null);
+const lyricsScrollTop = ref(0);
+const lyricsViewportHeight = ref(360);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
 
@@ -307,8 +312,13 @@ const estimatedSentenceHeight = computed(() => {
   const map = { sm: 64, md: 78, lg: 92 };
   return map[fontScaleLevel.value] || map.md;
 });
-const visibleStart = computed(() => Math.max(0, currentSentenceIndex.value - virtualWindowRadius));
-const visibleEnd = computed(() => Math.min(chapterSentences.value.length, currentSentenceIndex.value + virtualWindowRadius + 1));
+const visibleCount = computed(() => Math.ceil(lyricsViewportHeight.value / estimatedSentenceHeight.value) + (LYRICS_OVERSCAN * 2));
+const visibleStart = computed(() => {
+  const rawStart = Math.floor(lyricsScrollTop.value / estimatedSentenceHeight.value) - LYRICS_OVERSCAN;
+  return Math.max(0, rawStart);
+});
+const visibleEnd = computed(() => Math.min(chapterSentences.value.length, visibleStart.value + visibleCount.value));
+const visibleTailIndex = computed(() => Math.max(visibleStart.value, visibleEnd.value - 1));
 const visibleSentences = computed(() =>
   chapterSentences.value.slice(visibleStart.value, visibleEnd.value).map((sentence, offset) => ({
     sentence,
@@ -335,6 +345,10 @@ const statusText = computed(() => {
 watch(currentSentenceIndex, (value) => {
   progressValue.value = value;
   nextTick(() => centerCurrentSentence());
+});
+
+watch([visibleEnd, () => chapterSentences.value.length], () => {
+  nextTick(() => maybeLoadMoreFromViewport());
 });
 
 watch(
@@ -371,6 +385,7 @@ watch(fontScaleLevel, () => {
 
 onMounted(async () => {
   window.addEventListener("pointerdown", onWindowPointerDown);
+  window.addEventListener("resize", syncLyricsViewportMetrics);
   try {
     await initializePlayer();
   } catch (error) {
@@ -380,6 +395,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("pointerdown", onWindowPointerDown);
+  window.removeEventListener("resize", syncLyricsViewportMetrics);
   stopPlayback();
 });
 
@@ -461,6 +477,7 @@ async function loadChapter({ resetSentences }) {
   chapterFinished.value = false;
   currentSentenceIndex.value = 0;
   progressValue.value = 0;
+  lyricsScrollTop.value = 0;
   if (resetSentences) chapterSentences.value = [];
   await loadMoreContent(true);
 }
@@ -718,10 +735,37 @@ function setCurrentSentenceRef(el) {
 
 function centerCurrentSentence(smooth = true) {
   if (!currentSentenceEl || !lyricsViewportRef.value) return;
+  syncLyricsViewportMetrics();
   currentSentenceEl.scrollIntoView({
     block: "center",
     behavior: smooth ? "smooth" : "auto"
   });
+}
+
+function maybeLoadMoreFromViewport() {
+  if (isLoadingMore.value || chapterFinished.value) return;
+  if (visibleEnd.value < chapterSentences.value.length) return;
+  const viewport = lyricsViewportRef.value;
+  if (!viewport) return;
+  const remaining = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+  if (remaining <= LYRICS_SCROLL_EDGE_THRESHOLD) {
+    loadMoreContent();
+  }
+}
+
+function onLyricsScroll(event) {
+  const viewport = event.target;
+  if (!viewport) return;
+  lyricsScrollTop.value = viewport.scrollTop;
+  lyricsViewportHeight.value = viewport.clientHeight || lyricsViewportHeight.value;
+  maybeLoadMoreFromViewport();
+}
+
+function syncLyricsViewportMetrics() {
+  const viewport = lyricsViewportRef.value;
+  if (!viewport) return;
+  lyricsViewportHeight.value = viewport.clientHeight || lyricsViewportHeight.value;
+  lyricsScrollTop.value = viewport.scrollTop || 0;
 }
 
 function lyricsLineClass(index) {
