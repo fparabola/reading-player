@@ -105,6 +105,12 @@
             <h3>朗读设置</h3>
             <label class="setting-label">语速（{{ formattedPlaybackRate }}x）</label>
             <input v-model.number="playbackRate" class="speed-slider" type="range" min="0.5" max="2" step="0.25" />
+            <div class="slider-ticks" aria-hidden="true">
+              <span v-for="rate in rateOptions" :key="rate" class="slider-tick" :class="{ active: numericPlaybackRate === rate }">
+                <i></i>
+                <em>{{ formatPlaybackRateLabel(rate) }}x</em>
+              </span>
+            </div>
             <div class="slider-legend"><span>慢</span><span>正常</span><span>快</span></div>
 
             <div class="toggle-row">

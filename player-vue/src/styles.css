@@ -141,6 +141,37 @@ button { border: 0; color: inherit; background: none; }
   background: #93a7ff;
   box-shadow: 0 0 0 5px rgba(114, 136, 255, 0.14);
 }
+.slider-ticks {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 10px;
+  padding: 0 8px;
+}
+.slider-tick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+.slider-tick i {
+  display: block;
+  width: 1px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.22);
+}
+.slider-tick em {
+  font-style: normal;
+  font-size: 12px;
+  line-height: 1;
+}
+.slider-tick.active {
+  color: #dfe5ff;
+}
+.slider-tick.active i {
+  background: var(--accent-strong);
+}
 .timeline-labels, .slider-legend { display: flex; justify-content: space-between; margin-top: 10px; color: var(--muted); font-size: 13px; }
 .error-banner {
   margin: 18px 20px 0;
