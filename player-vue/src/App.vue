@@ -49,9 +49,23 @@
           <div class="mode-badge">{{ statusText }}</div>
           <div class="sentence-counter">{{ currentSentenceIndex + 1 }} / {{ safeSentenceCount }}</div>
 
-          <div class="sentence-stage">
+          <div class="sentence-stage lyrics-stage">
             <template v-if="hasSentence">
-              <p class="english-sentence">{{ currentSentence.english }}</p>
+              <div ref="lyricsViewportRef" class="lyrics-viewport">
+                <div class="lyrics-spacer" :style="{ height: `${topSpacerHeight}px` }"></div>
+                <button
+                  v-for="item in visibleSentences"
+                  :key="item.index"
+                  :ref="item.index === currentSentenceIndex ? setCurrentSentenceRef : null"
+                  type="button"
+                  class="lyrics-line"
+                  :class="lyricsLineClass(item.index)"
+                  @click="jumpToSentence(item.index)"
+                >
+                  {{ item.sentence.english }}
+                </button>
+                <div class="lyrics-spacer" :style="{ height: `${bottomSpacerHeight}px` }"></div>
+              </div>
             </template>
             <template v-else>
               <p class="english-sentence empty-copy">选择书籍和章节后，将从 service 服务加载文本并拆句播放。</p>
@@ -249,6 +263,7 @@ const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
 const audioRef = ref(null);
 const rateMenuRef = ref(null);
+const lyricsViewportRef = ref(null);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
 
@@ -257,6 +272,7 @@ let currentAudioUrl = null;
 let playToken = 0;
 let isRestoringState = false;
 const isRateMenuOpen = ref(false);
+let currentSentenceEl = null;
 
 const emptySentence = {
   english: "",
@@ -286,6 +302,21 @@ const fontScaleStyle = computed(() => FONT_SCALE_MAP[fontScaleLevel.value] || FO
 const numericPlaybackRate = computed(() => clampPlaybackRate(playbackRate.value));
 const formattedPlaybackRate = computed(() => formatPlaybackRateLabel(numericPlaybackRate.value));
 const rateMenuOptions = computed(() => [...rateOptions].sort((a, b) => b - a));
+const virtualWindowRadius = 6;
+const estimatedSentenceHeight = computed(() => {
+  const map = { sm: 64, md: 78, lg: 92 };
+  return map[fontScaleLevel.value] || map.md;
+});
+const visibleStart = computed(() => Math.max(0, currentSentenceIndex.value - virtualWindowRadius));
+const visibleEnd = computed(() => Math.min(chapterSentences.value.length, currentSentenceIndex.value + virtualWindowRadius + 1));
+const visibleSentences = computed(() =>
+  chapterSentences.value.slice(visibleStart.value, visibleEnd.value).map((sentence, offset) => ({
+    sentence,
+    index: visibleStart.value + offset
+  }))
+);
+const topSpacerHeight = computed(() => visibleStart.value * estimatedSentenceHeight.value);
+const bottomSpacerHeight = computed(() => Math.max(0, chapterSentences.value.length - visibleEnd.value) * estimatedSentenceHeight.value);
 const vocabularyItems = computed(() =>
   (currentSentence.value.vocabulary || []).map((item) => ({
     ...item,
@@ -303,6 +334,7 @@ const statusText = computed(() => {
 
 watch(currentSentenceIndex, (value) => {
   progressValue.value = value;
+  nextTick(() => centerCurrentSentence());
 });
 
 watch(
@@ -331,6 +363,10 @@ watch(playbackRate, async () => {
   clearAdvanceTimer();
   await nextTick();
   await playCurrentSentence();
+});
+
+watch(fontScaleLevel, () => {
+  nextTick(() => centerCurrentSentence(false));
 });
 
 onMounted(async () => {
@@ -502,6 +538,11 @@ function onSeek() {
   if (isPlaying.value) replayFromCurrent();
 }
 
+function jumpToSentence(index) {
+  currentSentenceIndex.value = clampIndex(index, chapterSentences.value.length);
+  if (isPlaying.value) replayFromCurrent();
+}
+
 async function nextPage() {
   if (!hasSentence.value) return;
   if (currentSentenceIndex.value < chapterSentences.value.length - 1) {
@@ -669,6 +710,27 @@ function onWindowPointerDown(event) {
   if (!isRateMenuOpen.value) return;
   if (rateMenuRef.value?.contains(event.target)) return;
   isRateMenuOpen.value = false;
+}
+
+function setCurrentSentenceRef(el) {
+  currentSentenceEl = el;
+}
+
+function centerCurrentSentence(smooth = true) {
+  if (!currentSentenceEl || !lyricsViewportRef.value) return;
+  currentSentenceEl.scrollIntoView({
+    block: "center",
+    behavior: smooth ? "smooth" : "auto"
+  });
+}
+
+function lyricsLineClass(index) {
+  const distance = Math.abs(index - currentSentenceIndex.value);
+  return {
+    current: distance === 0,
+    near: distance === 1,
+    far: distance >= 4
+  };
 }
 
 function toggleTts() {
