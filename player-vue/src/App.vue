@@ -45,46 +45,33 @@
       </section>
 
       <section class="workspace">
-        <section class="main-stage panel">
+        <section class="main-stage panel" :style="fontScaleStyle">
           <div class="mode-badge">{{ statusText }}</div>
           <div class="sentence-counter">{{ currentSentenceIndex + 1 }} / {{ safeSentenceCount }}</div>
 
-          <button class="nav-arrow left" type="button" @click="previousPage" :disabled="!canGoPrev">‹</button>
-          <button class="nav-arrow right" type="button" @click="nextPage" :disabled="!hasSentence">›</button>
-
           <div class="sentence-stage">
             <template v-if="hasSentence">
-              <p class="english-sentence">
-                <template v-for="(segment, index) in highlightedSentence.segments" :key="`${segment.text}-${index}`">
-                  <span :class="{ accent: segment.highlight }">{{ segment.text }}</span>
-                </template>
-              </p>
-              <p class="chinese-sentence">{{ highlightedSentence.translation }}</p>
+              <p class="english-sentence">{{ currentSentence.english }}</p>
             </template>
             <template v-else>
               <p class="english-sentence empty-copy">选择书籍和章节后，将从 service 服务加载文本并拆句播放。</p>
-              <p class="chinese-sentence">当前未加载内容</p>
             </template>
-          </div>
-
-          <div class="sentence-actions">
-            <button class="mini-button" type="button" @click="speakCurrentSentence" :disabled="!hasSentence">单句播放</button>
-            <button class="mini-button active" type="button" @click="toggleWord(highlightedSentence.keyword)" :disabled="!hasSentence">生词</button>
-            <button class="mini-icon" type="button" @click="loadMoreContent" :disabled="chapterFinished || isLoadingMore">+</button>
           </div>
 
           <div class="transport">
             <button class="rate-chip" type="button" @click="cycleRate">
               <span class="rotate">⟳</span>
-              <span>{{ playbackRate.toFixed(1) }}x</span>
+              <span>{{ formattedPlaybackRate }}x</span>
               <span>语速</span>
             </button>
 
             <div class="transport-buttons">
               <button class="transport-button" type="button" @click="goToStart" :disabled="!hasSentence">|◀</button>
+              <button class="transport-button" type="button" @click="previousPage" :disabled="!canGoPrev">◀</button>
               <button class="transport-button primary" type="button" @click="togglePlayback" :disabled="!hasSentence">
                 {{ isPlaying ? "❚❚" : "▶" }}
               </button>
+              <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence">▶</button>
               <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence">▶|</button>
             </div>
 
@@ -116,20 +103,8 @@
 
           <div class="settings-group">
             <h3>朗读设置</h3>
-            <label class="setting-label">语速</label>
-            <div class="rate-tabs">
-              <button
-                v-for="rate in rateOptions"
-                :key="rate"
-                type="button"
-                class="rate-tab"
-                :class="{ active: playbackRate === rate }"
-                @click="playbackRate = rate"
-              >
-                {{ rate.toFixed(1) }}x
-              </button>
-            </div>
-            <input v-model="playbackRate" class="speed-slider" type="range" min="0.8" max="1.4" step="0.1" />
+            <label class="setting-label">语速（{{ formattedPlaybackRate }}x）</label>
+            <input v-model.number="playbackRate" class="speed-slider" type="range" min="0.5" max="2" step="0.25" />
             <div class="slider-legend"><span>慢</span><span>正常</span><span>快</span></div>
 
             <div class="toggle-row">
@@ -139,10 +114,6 @@
             <div class="toggle-row">
               <span>使用服务 TTS</span>
               <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
-            </div>
-            <div class="toggle-row">
-              <span>高亮当前词</span>
-              <button class="inline-switch" :class="{ active: highlightCurrent }" type="button" @click="highlightCurrent = !highlightCurrent"></button>
             </div>
           </div>
 
@@ -166,9 +137,9 @@
             <div class="font-row">
               <span>字体大小</span>
               <div class="font-scale">
-                <button type="button">A-</button>
-                <button type="button" class="active">A</button>
-                <button type="button">A+</button>
+                <button type="button" :class="{ active: fontScaleLevel === 'sm' }" @click="setFontScale('sm')">A-</button>
+                <button type="button" :class="{ active: fontScaleLevel === 'md' }" @click="setFontScale('md')">A</button>
+                <button type="button" :class="{ active: fontScaleLevel === 'lg' }" @click="setFontScale('lg')">A+</button>
               </div>
             </div>
           </div>
@@ -185,15 +156,15 @@
       <section class="insight-grid">
         <article class="info-card panel">
           <h3>翻译</h3>
-          <p>{{ highlightedSentence.translation }}</p>
+          <p>{{ currentSentence.translation }}</p>
           <p class="muted">当前先用本地占位翻译承接真实文本播放，后续可继续接入 `/analyze` 或翻译服务。</p>
         </article>
 
         <article class="info-card panel">
           <h3>语法解析</h3>
-          <p>{{ highlightedSentence.grammar }}</p>
+          <p>{{ currentSentence.grammar }}</p>
           <ul class="bullet-list">
-            <li v-for="point in highlightedSentence.grammarPoints" :key="point">{{ point }}</li>
+            <li v-for="point in currentSentence.grammarPoints" :key="point">{{ point }}</li>
           </ul>
         </article>
 
@@ -223,17 +194,21 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } 
 
 const DEFAULT_MIN_SIZE = 500;
 const DEFAULT_BOOK = "哈利波特1-7英文原版";
-const ANALYSIS_MODEL = "Qwen/Qwen3-14B";
 const STORAGE_KEY = "player_vue_reading_state";
 const API_CANDIDATES = process.env.NODE_ENV === "development"
   ? ["/api", "http://localhost:8000", "http://127.0.0.1:8000"]
   : [window.location.origin, "http://localhost:8000", "http://127.0.0.1:8000"];
 
+const FONT_SCALE_MAP = {
+  sm: { "--player-english-size": "14px", "--player-empty-size": "14px" },
+  md: { "--player-english-size": "16px", "--player-empty-size": "16px" },
+  lg: { "--player-english-size": "18px", "--player-empty-size": "18px" }
+};
+
 const bookOptions = ref([]);
 const chapterOptions = ref([]);
 const currentBook = ref("");
 const currentChapter = ref("");
-
 const chapterSentences = ref([]);
 const currentSentenceIndex = ref(0);
 const progressValue = ref(0);
@@ -242,24 +217,23 @@ const chapterFinished = ref(false);
 const isInitialLoading = ref(false);
 const isLoadingMore = ref(false);
 const errorMessage = ref("");
-
 const activeTab = ref("解析");
 const tabs = ["解析", "词汇", "语法", "笔记"];
-const analysisModel = ref(ANALYSIS_MODEL);
 const autoPlayNext = ref(true);
-const highlightCurrent = ref(true);
+const fontScaleLevel = ref("md");
 const followMode = ref(false);
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
 const playbackRate = ref(1.0);
-const rateOptions = [0.8, 1.0, 1.2, 1.4];
+const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 
 const audioRef = ref(null);
 const savedWords = reactive(new Set(["bear", "Potters"]));
+const resolvedApiBase = ref("");
+
 let advanceTimer = null;
 let currentAudioUrl = null;
 let playToken = 0;
-const resolvedApiBase = ref("");
 let isRestoringState = false;
 
 const emptySentence = {
@@ -279,41 +253,22 @@ const canGoPrev = computed(() => currentSentenceIndex.value > 0);
 const vocabularyCount = computed(() => savedWords.size);
 const currentChapterIndex = computed(() => chapterOptions.value.findIndex((item) => item === currentChapter.value));
 const hasNextChapter = computed(() => currentChapterIndex.value >= 0 && currentChapterIndex.value < chapterOptions.value.length - 1);
-
 const chapterProgress = computed(() => {
   if (!chapterSentences.value.length) return 0;
   return Math.round(((currentSentenceIndex.value + 1) / chapterSentences.value.length) * 100);
 });
-
 const elapsedLabel = computed(() => formatTime((currentSentenceIndex.value + 1) * 6));
 const durationLabel = computed(() => formatTime(Math.max(chapterSentences.value.length * 6, 6)));
-
 const currentSentence = computed(() => chapterSentences.value[currentSentenceIndex.value] || emptySentence);
-
-const highlightedSentence = computed(() => {
-  const sentence = currentSentence.value;
-  const keyword = sentence.keyword || "";
-  if (!sentence.english || !keyword) {
-    return { ...sentence, segments: [{ text: sentence.english || "暂无内容", highlight: false }] };
-  }
-  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const parts = sentence.english.split(new RegExp(`(${escaped})`, "i"));
-  return {
-    ...sentence,
-    segments: parts.filter(Boolean).map((part) => ({
-      text: part,
-      highlight: highlightCurrent.value && part.toLowerCase() === keyword.toLowerCase()
-    }))
-  };
-});
-
+const fontScaleStyle = computed(() => FONT_SCALE_MAP[fontScaleLevel.value] || FONT_SCALE_MAP.md);
+const numericPlaybackRate = computed(() => clampPlaybackRate(playbackRate.value));
+const formattedPlaybackRate = computed(() => formatPlaybackRateLabel(numericPlaybackRate.value));
 const vocabularyItems = computed(() =>
-  (highlightedSentence.value.vocabulary || []).map((item) => ({
+  (currentSentence.value.vocabulary || []).map((item) => ({
     ...item,
     saved: savedWords.has(item.word)
   }))
 );
-
 const statusText = computed(() => {
   if (isInitialLoading.value) return "正在加载章节文本";
   if (isLoadingMore.value) return "正在获取下一段内容";
@@ -337,7 +292,7 @@ watch(
     playbackRate,
     ttsEnabled,
     autoPlayNext,
-    highlightCurrent,
+    fontScaleLevel,
     () => chapterSentences.value
   ],
   () => {
@@ -347,6 +302,7 @@ watch(
 );
 
 watch(playbackRate, async () => {
+  playbackRate.value = clampPlaybackRate(playbackRate.value);
   if (!isPlaying.value) return;
   stopAudio();
   clearAdvanceTimer();
@@ -380,9 +336,7 @@ async function initializePlayer() {
     if (savedState?.chapter && chapterOptions.value.includes(savedState.chapter)) {
       currentChapter.value = savedState.chapter;
     }
-    if (applySavedReadingState(savedState)) {
-      return;
-    }
+    if (applySavedReadingState(savedState)) return;
     if (currentBook.value && currentChapter.value) {
       await loadChapter({ resetSentences: true });
     }
@@ -504,7 +458,7 @@ function sentenceToCard(sentence) {
     translation: `示例翻译：${plain.slice(0, 36)}${plain.length > 36 ? "..." : ""}`,
     keyword,
     keywordMeaning: "待补充释义",
-    grammar: `句子已从 service 拆出。当前语法卡片使用占位内容，可继续对接 analyze_stream。`,
+    grammar: "句子已从 service 拆出。当前语法卡片使用占位内容，可继续对接 analyze_stream。",
     grammarPoints: [
       `来源章节：${currentChapter.value}`,
       `关键词候选：${keyword}`,
@@ -520,18 +474,14 @@ function sentenceToCard(sentence) {
 
 function onSeek() {
   currentSentenceIndex.value = Number(progressValue.value);
-  if (isPlaying.value) {
-    replayFromCurrent();
-  }
+  if (isPlaying.value) replayFromCurrent();
 }
 
 async function nextPage() {
   if (!hasSentence.value) return;
   if (currentSentenceIndex.value < chapterSentences.value.length - 1) {
     currentSentenceIndex.value += 1;
-    if (isPlaying.value) {
-      await playCurrentSentence();
-    }
+    if (isPlaying.value) await playCurrentSentence();
     maybePreloadMore();
     return;
   }
@@ -541,9 +491,7 @@ async function nextPage() {
     await loadMoreContent();
     if (chapterSentences.value.length > previousLength) {
       currentSentenceIndex.value += 1;
-      if (isPlaying.value) {
-        await playCurrentSentence();
-      }
+      if (isPlaying.value) await playCurrentSentence();
       maybePreloadMore();
       return;
     }
@@ -551,9 +499,7 @@ async function nextPage() {
 
   if (autoPlayNext.value && hasNextChapter.value) {
     await jumpToNextChapter();
-    if (isPlaying.value) {
-      await playCurrentSentence();
-    }
+    if (isPlaying.value) await playCurrentSentence();
     return;
   }
 
@@ -563,9 +509,7 @@ async function nextPage() {
 function previousPage() {
   if (!hasSentence.value) return;
   currentSentenceIndex.value = Math.max(currentSentenceIndex.value - 1, 0);
-  if (isPlaying.value) {
-    replayFromCurrent();
-  }
+  if (isPlaying.value) replayFromCurrent();
 }
 
 function goToStart() {
@@ -580,17 +524,13 @@ function goToEnd() {
 
 async function jumpToNextChapter() {
   if (!hasNextChapter.value) return;
-  const nextChapter = chapterOptions.value[currentChapterIndex.value + 1];
-  currentChapter.value = nextChapter;
+  currentChapter.value = chapterOptions.value[currentChapterIndex.value + 1];
   await reloadCurrentChapter();
 }
 
 function togglePlayback() {
-  if (isPlaying.value) {
-    stopPlayback();
-  } else {
-    startPlayback();
-  }
+  if (isPlaying.value) stopPlayback();
+  else startPlayback();
 }
 
 async function startPlayback() {
@@ -637,9 +577,7 @@ async function requestTtsAudio(text, token) {
   const voice = detectLanguage(text) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
   const rate = formatTtsRate(playbackRate.value);
   const response = await fetch(buildApiUrl(`/tts?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`));
-  if (!response.ok) {
-    throw new Error("TTS 服务调用失败");
-  }
+  if (!response.ok) throw new Error("TTS 服务调用失败");
 
   const blob = await response.blob();
   if (token !== playToken || !isPlaying.value) return;
@@ -649,25 +587,6 @@ async function requestTtsAudio(text, token) {
   audio.src = currentAudioUrl;
   audio.playbackRate = playbackRate.value;
   await audio.play();
-}
-
-function speakCurrentSentence() {
-  if (!hasSentence.value) return;
-  if (isPlaying.value) {
-    replayFromCurrent();
-    return;
-  }
-
-  if (ttsEnabled.value) {
-    const token = ++playToken;
-    requestTtsAudio(currentSentence.value.english, token).catch((error) => {
-      handleError(error);
-      ttsEnabled.value = false;
-    });
-    return;
-  }
-
-  scheduleTextAdvance(++playToken, false);
 }
 
 function scheduleTextAdvance(token, autoNext = true) {
@@ -719,9 +638,7 @@ function cycleRate() {
 
 function toggleTts() {
   ttsEnabled.value = !ttsEnabled.value;
-  if (isPlaying.value) {
-    replayFromCurrent();
-  }
+  if (isPlaying.value) replayFromCurrent();
 }
 
 function toggleWord(word) {
@@ -737,6 +654,11 @@ function detectLanguage(text) {
 function formatTtsRate(rate) {
   const percent = Math.round((rate - 1) * 100);
   return `${percent >= 0 ? "+" : ""}${percent}%`;
+}
+
+function formatPlaybackRateLabel(rate) {
+  const normalized = clampPlaybackRate(rate);
+  return Number.isInteger(normalized) ? `${normalized}` : `${normalized}`.replace(/(\.\d*?[1-9])0+$/, "$1");
 }
 
 function loadReadingState() {
@@ -765,7 +687,7 @@ function applySavedReadingState(savedState) {
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
-  highlightCurrent.value = typeof savedState.highlightCurrent === "boolean" ? savedState.highlightCurrent : highlightCurrent.value;
+  fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   isRestoringState = false;
   return true;
 }
@@ -782,7 +704,7 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,
-    highlightCurrent: highlightCurrent.value
+    fontScaleLevel: fontScaleLevel.value
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -796,7 +718,15 @@ function clampIndex(index, length) {
 function clampPlaybackRate(rate) {
   const normalized = Number(rate);
   if (!Number.isFinite(normalized)) return 1.0;
-  return Math.max(0.8, Math.min(1.4, normalized));
+  return Math.max(0.5, Math.min(2.0, normalized));
+}
+
+function setFontScale(level) {
+  fontScaleLevel.value = normalizeFontScaleLevel(level);
+}
+
+function normalizeFontScaleLevel(level) {
+  return Object.hasOwn(FONT_SCALE_MAP, level) ? level : "md";
 }
 
 function buildApiUrl(path, base = resolvedApiBase.value) {
@@ -808,8 +738,7 @@ function buildApiUrl(path, base = resolvedApiBase.value) {
 async function detectApiBase() {
   if (resolvedApiBase.value) return resolvedApiBase.value;
 
-  const candidates = [...API_CANDIDATES];
-  for (const base of candidates) {
+  for (const base of API_CANDIDATES) {
     const normalizedBase = base.endsWith("/") ? base.slice(0, -1) : base;
     try {
       const response = await fetch(`${normalizedBase}/health`);
