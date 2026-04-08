@@ -158,6 +158,18 @@ button { border: 0; color: inherit; background: none; }
   cursor: pointer;
   transition: 180ms ease;
   transform-origin: center center;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Reading mode: selectable text, no click action, pure white */
+.lyrics-line.reading {
+  color: #ffffff;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  transform: none;
+  opacity: 1;
+  transition: none;
 }
 .lyrics-line.current {
   color: #ffffff;

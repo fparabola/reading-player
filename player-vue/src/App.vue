@@ -59,9 +59,9 @@
                   :ref="item.index === currentSentenceIndex ? setCurrentSentenceRef : null"
                   type="button"
                   class="lyrics-line"
-                  :class="lyricsLineClass(item.index)"
+                  :class="[lyricsLineClass(item.index), { reading: readingMode }]"
                   :data-tail="item.index === visibleTailIndex ? 'true' : null"
-                  @click="jumpToSentence(item.index)"
+                  @click="readingMode ? null : jumpToSentence(item.index)"
                 >
                   {{ item.sentence.english }}
                 </button>
