@@ -23,14 +23,6 @@
           </select>
         </div>
 
-        <div class="top-actions">
-          <button class="pill-switch" type="button" @click="togglePlayback" :disabled="!hasSentence">
-            <span class="switch-track" :class="{ active: isPlaying }"><span class="switch-thumb"></span></span>
-            <span>{{ isPlaying ? "朗读中" : "已暂停" }}</span>
-          </button>
-          <button class="ghost-button" type="button" @click="reloadCurrentChapter">刷新</button>
-          <button class="ghost-button" type="button" @click="jumpToNextChapter" :disabled="!hasNextChapter">下一章</button>
-        </div>
       </header>
 
       <section class="progress-strip">
