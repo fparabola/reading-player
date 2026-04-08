@@ -47,3 +47,16 @@ nul
 
 # Test data and resources
 server/resource/
+
+# Screenshots
+*.png
+*.jpg
+*.jpeg
+!public/*.{png,jpg,jpeg}
+
+# Server config
+server/config.ini
+server/resource/
+
+# PID files
+*.pid

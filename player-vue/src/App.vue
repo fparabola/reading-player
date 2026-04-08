@@ -95,16 +95,18 @@
             </div>
 
             <div class="transport-buttons">
-              <button class="transport-button" type="button" @click="goToStart" :disabled="!hasSentence">|◀</button>
-              <button class="transport-button" type="button" @click="previousPage" :disabled="!canGoPrev">◀</button>
-              <button class="transport-button primary" type="button" @click="togglePlayback" :disabled="!hasSentence">
+              <button class="transport-button" type="button" @click="goToStart" :disabled="!hasSentence || readingMode">|◀</button>
+              <button class="transport-button" type="button" @click="previousPage" :disabled="!canGoPrev || readingMode">◀</button>
+              <button class="transport-button primary" type="button" @click="togglePlayback" :disabled="!hasSentence || readingMode">
                 {{ isPlaying ? "❚❚" : "▶" }}
               </button>
-              <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence">▶</button>
-              <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence">▶|</button>
+              <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence || readingMode">▶</button>
+              <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence || readingMode">▶|</button>
             </div>
 
-            <button class="follow-button" type="button" @click="followMode = !followMode" :class="{ active: followMode }">跟读模式</button>
+            <button class="mode-toggle-button" type="button" @click="readingMode = !readingMode" :class="{ active: readingMode }">
+              {{ readingMode ? "阅读模式" : "朗读模式" }}
+            </button>
           </div>
 
           <div class="timeline">
@@ -256,7 +258,7 @@ const activeTab = ref("解析");
 const tabs = ["解析", "词汇", "语法", "笔记"];
 const autoPlayNext = ref(true);
 const fontScaleLevel = ref("md");
-const followMode = ref(false);
+const readingMode = ref(false);
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
 const playbackRate = ref(1.0);
@@ -364,6 +366,7 @@ watch(
     ttsEnabled,
     autoPlayNext,
     fontScaleLevel,
+    readingMode,
     () => chapterSentences.value
   ],
   () => {
@@ -863,11 +866,11 @@ function syncLyricsViewportMetrics() {
 function lyricsLineClass(index) {
   const distance = Math.abs(index - currentSentenceIndex.value);
   return {
-    current: distance === 0,
-    tier1: distance === 1,
-    tier2: distance === 2,
-    tier3: distance === 3,
-    tier4: distance >= 4
+    current: !readingMode.value && distance === 0,
+    tier1: !readingMode.value && distance === 1,
+    tier2: !readingMode.value && distance === 2,
+    tier3: !readingMode.value && distance === 3,
+    tier4: !readingMode.value && distance >= 4
   };
 }
 
@@ -924,6 +927,7 @@ function applySavedReadingState(savedState) {
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
+  readingMode.value = typeof savedState.readingMode === "boolean" ? savedState.readingMode : readingMode.value;
   isRestoringState = false;
   return true;
 }
@@ -940,7 +944,8 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,
-    fontScaleLevel: fontScaleLevel.value
+    fontScaleLevel: fontScaleLevel.value,
+    readingMode: readingMode.value
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
