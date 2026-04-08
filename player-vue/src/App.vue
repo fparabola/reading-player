@@ -344,16 +344,7 @@ const statusText = computed(() => {
 
 watch(currentSentenceIndex, (value) => {
   progressValue.value = value;
-  // Directly update scroll position to ensure the current sentence is visible
-  const targetScrollTop = Math.max(0, value * estimatedSentenceHeight.value - lyricsViewportHeight.value / 2 + estimatedSentenceHeight.value / 2);
-  lyricsScrollTop.value = targetScrollTop;
-  nextTick(() => {
-    if (lyricsViewportRef.value) {
-      lyricsViewportRef.value.scrollTop = targetScrollTop;
-    }
-    // Also try to center using the element if it exists now
-    centerCurrentSentence();
-  });
+  centerCurrentSentence(false);
 });
 
 watch([visibleEnd, () => chapterSentences.value.length], () => {
@@ -743,13 +734,16 @@ function setCurrentSentenceRef(el) {
 }
 
 function centerCurrentSentence(smooth = true) {
-  if (!currentSentenceEl || !lyricsViewportRef.value) return;
+  if (!lyricsViewportRef.value) return;
   syncLyricsViewportMetrics();
-  currentSentenceEl.scrollIntoView({
-    block: "center",
-    behavior: smooth ? "smooth" : "auto"
-  });
-  // Sync scroll position after scrollIntoView to ensure virtual list stays in sync
+  const viewport = lyricsViewportRef.value;
+  const viewportHeight = viewport.clientHeight;
+  // Calculate target scroll position based on current sentence index
+  const targetScrollTop = currentSentenceIndex.value * estimatedSentenceHeight.value - (viewportHeight / 2) + (estimatedSentenceHeight.value / 2);
+  const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, viewport.scrollHeight - viewportHeight));
+  lyricsScrollTop.value = clampedScrollTop;
+  viewport.scrollTop = clampedScrollTop;
+  // Ensure sync after scroll
   nextTick(() => syncLyricsViewportMetrics());
 }
 
