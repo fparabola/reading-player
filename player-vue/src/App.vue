@@ -626,6 +626,7 @@ function togglePlayback() {
 async function startPlayback() {
   if (!hasSentence.value) return;
   isPlaying.value = true;
+  centerCurrentSentence(false);
   await playCurrentSentence();
 }
 
