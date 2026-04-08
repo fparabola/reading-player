@@ -155,14 +155,6 @@
           </div>
 
           <div class="settings-group">
-            <h3>内容状态</h3>
-            <div class="toggle-row"><span>已加载句子</span><strong>{{ loadedSentenceCount }}</strong></div>
-            <div class="toggle-row"><span>章节游标</span><strong>{{ currentPosition }}</strong></div>
-            <div class="toggle-row"><span>章节结束</span><strong>{{ chapterFinished ? "是" : "否" }}</strong></div>
-            <div class="toggle-row"><span>加载更多</span><strong>{{ isLoadingMore ? "进行中" : "空闲" }}</strong></div>
-          </div>
-
-          <div class="settings-group">
             <h3>外观</h3>
             <div class="theme-row">
               <span>主题</span>
