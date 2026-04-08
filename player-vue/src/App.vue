@@ -274,6 +274,8 @@ const resolvedApiBase = ref("");
 
 let advanceTimer = null;
 let currentAudioUrl = null;
+let nextAudioUrl = null;  // Preloaded next sentence audio
+let preloadIndex = -1;    // Which sentence is preloaded
 let playToken = 0;
 let isRestoringState = false;
 const isRateMenuOpen = ref(false);
@@ -372,6 +374,7 @@ watch(
 
 watch(playbackRate, async () => {
   playbackRate.value = clampPlaybackRate(playbackRate.value);
+  clearPreloadAudio();
   if (!isPlaying.value) return;
   stopAudio();
   clearAdvanceTimer();
@@ -607,6 +610,7 @@ function goToEnd() {
 
 async function jumpToNextChapter() {
   if (!hasNextChapter.value) return;
+  clearPreloadAudio();  // Clear preloaded audio when switching chapters
   currentChapter.value = chapterOptions.value[currentChapterIndex.value + 1];
   await reloadCurrentChapter();
 }
@@ -627,9 +631,11 @@ function stopPlayback() {
   playToken += 1;
   clearAdvanceTimer();
   stopAudio();
+  clearPreloadAudio();
 }
 
 async function replayFromCurrent() {
+  clearPreloadAudio();  // Clear preloaded audio when seeking/jumping
   stopAudio();
   clearAdvanceTimer();
   await playCurrentSentence();
@@ -646,6 +652,13 @@ async function playCurrentSentence() {
   if (ttsEnabled.value) {
     try {
       await requestTtsAudio(text, token);
+
+      // Preload next sentence after current starts playing
+      const nextIndex = currentSentenceIndex.value + 1;
+      if (autoPlayNext.value && nextIndex < chapterSentences.value.length) {
+        // Don't wait for preload to complete
+        preloadNextSentenceAudio(nextIndex);
+      }
       return;
     } catch (error) {
       handleError(error);
@@ -659,6 +672,23 @@ async function playCurrentSentence() {
 async function requestTtsAudio(text, token) {
   const voice = detectLanguage(text) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
   const rate = formatTtsRate(playbackRate.value);
+
+  // Check if we have preloaded audio for current sentence
+  if (preloadIndex === currentSentenceIndex.value && nextAudioUrl) {
+    if (token !== playToken || !isPlaying.value) return;
+
+    currentAudioUrl = nextAudioUrl;
+    nextAudioUrl = null;  // Consume preloaded audio
+    preloadIndex = -1;
+
+    const audio = audioRef.value;
+    audio.src = currentAudioUrl;
+    audio.playbackRate = playbackRate.value;
+    await audio.play();
+    return;
+  }
+
+  // No preloaded audio, fetch new
   const response = await fetch(buildApiUrl(`/tts?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`));
   if (!response.ok) throw new Error("TTS 服务调用失败");
 
@@ -704,6 +734,45 @@ function stopAudio() {
   if (currentAudioUrl) {
     URL.revokeObjectURL(currentAudioUrl);
     currentAudioUrl = null;
+  }
+}
+
+function clearPreloadAudio() {
+  if (nextAudioUrl) {
+    URL.revokeObjectURL(nextAudioUrl);
+    nextAudioUrl = null;
+  }
+  preloadIndex = -1;
+}
+
+async function preloadNextSentenceAudio(nextIndex) {
+  // Don't preload if index is invalid
+  if (nextIndex >= chapterSentences.value.length || nextIndex < 0) {
+    clearPreloadAudio();
+    return;
+  }
+
+  // Skip if already preloaded
+  if (preloadIndex === nextIndex && nextAudioUrl) return;
+
+  // Clear old preload
+  clearPreloadAudio();
+
+  try {
+    const nextSentence = chapterSentences.value[nextIndex];
+    if (!nextSentence) return;
+
+    const voice = detectLanguage(nextSentence.english) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
+    const rate = formatTtsRate(playbackRate.value);
+    const response = await fetch(buildApiUrl(`/tts?text=${encodeURIComponent(nextSentence.english)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`));
+    if (!response.ok) return;
+
+    const blob = await response.blob();
+    preloadIndex = nextIndex;
+    nextAudioUrl = URL.createObjectURL(blob);
+  } catch (error) {
+    // Preload failure is not critical, continue without preload
+    clearPreloadAudio();
   }
 }
 
@@ -804,6 +873,7 @@ function lyricsLineClass(index) {
 
 function toggleTts() {
   ttsEnabled.value = !ttsEnabled.value;
+  clearPreloadAudio();
   if (isPlaying.value) replayFromCurrent();
 }
 
