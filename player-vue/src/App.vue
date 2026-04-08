@@ -94,6 +94,7 @@
               </button>
               <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence || readingMode">▶</button>
               <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence || readingMode">▶|</button>
+              <button class="transport-button" type="button" @click="centerCurrentSentence(false)" :disabled="!hasSentence">◎</button>
             </div>
 
             <button class="mode-toggle-button" type="button" @click="readingMode = !readingMode" :class="{ active: readingMode }">
