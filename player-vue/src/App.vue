@@ -344,7 +344,16 @@ const statusText = computed(() => {
 
 watch(currentSentenceIndex, (value) => {
   progressValue.value = value;
-  nextTick(() => centerCurrentSentence());
+  // Directly update scroll position to ensure the current sentence is visible
+  const targetScrollTop = Math.max(0, value * estimatedSentenceHeight.value - lyricsViewportHeight.value / 2 + estimatedSentenceHeight.value / 2);
+  lyricsScrollTop.value = targetScrollTop;
+  nextTick(() => {
+    if (lyricsViewportRef.value) {
+      lyricsViewportRef.value.scrollTop = targetScrollTop;
+    }
+    // Also try to center using the element if it exists now
+    centerCurrentSentence();
+  });
 });
 
 watch([visibleEnd, () => chapterSentences.value.length], () => {
@@ -740,6 +749,8 @@ function centerCurrentSentence(smooth = true) {
     block: "center",
     behavior: smooth ? "smooth" : "auto"
   });
+  // Sync scroll position after scrollIntoView to ensure virtual list stays in sync
+  nextTick(() => syncLyricsViewportMetrics());
 }
 
 function maybeLoadMoreFromViewport() {
