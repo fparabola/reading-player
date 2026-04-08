@@ -94,7 +94,7 @@
               </button>
               <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence || readingMode">▶</button>
               <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence || readingMode">▶|</button>
-              <button class="transport-button" type="button" @click="centerCurrentSentence(false)" :disabled="!hasSentence">◎</button>
+              <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
             </div>
 
             <button class="mode-toggle-button" type="button" @click="readingMode = !readingMode" :class="{ active: readingMode }">
@@ -333,7 +333,7 @@ const statusText = computed(() => {
 
 watch(currentSentenceIndex, (value) => {
   progressValue.value = value;
-  centerCurrentSentence(false);
+  centerCurrentSentence(true);
 });
 
 watch([visibleEnd, () => chapterSentences.value.length], () => {
@@ -371,7 +371,7 @@ watch(playbackRate, async () => {
 });
 
 watch(fontScaleLevel, () => {
-  nextTick(() => centerCurrentSentence(false));
+  nextTick(() => centerCurrentSentence(true));
 });
 
 onMounted(async () => {
@@ -611,7 +611,7 @@ function togglePlayback() {
 async function startPlayback() {
   if (!hasSentence.value) return;
   isPlaying.value = true;
-  centerCurrentSentence(false);
+  centerCurrentSentence(true);
   await playCurrentSentence();
 }
 
@@ -804,11 +804,12 @@ function centerCurrentSentence(smooth = true) {
   const maxScroll = Math.max(0, viewport.scrollHeight - viewportHeight);
   const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScroll));
 
-  // Set both state and DOM
+  // Set both state and DOM (will use smooth scroll from CSS)
   lyricsScrollTop.value = clampedScrollTop;
-  viewport.scrollTop = clampedScrollTop;
+  viewport.scrollTo({ top: clampedScrollTop, behavior: smooth ? 'smooth' : 'auto' });
 
   // After rendering, fine-tune using actual element position if available
+  // Use 'auto' behavior to avoid interrupting the smooth scroll
   nextTick(() => {
     if (currentSentenceEl) {
       const elTop = currentSentenceEl.offsetTop;
@@ -817,7 +818,7 @@ function centerCurrentSentence(smooth = true) {
       const fineTunedTop = elTop - centerOffset;
 
       lyricsScrollTop.value = Math.max(0, Math.min(fineTunedTop, maxScroll));
-      viewport.scrollTop = Math.max(0, Math.min(fineTunedTop, maxScroll));
+      viewport.scrollTo({ top: Math.max(0, Math.min(fineTunedTop, maxScroll)), behavior: 'auto' });
     }
     syncLyricsViewportMetrics();
   });
