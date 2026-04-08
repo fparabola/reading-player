@@ -734,17 +734,35 @@ function setCurrentSentenceRef(el) {
 }
 
 function centerCurrentSentence(smooth = true) {
-  if (!lyricsViewportRef.value) return;
-  syncLyricsViewportMetrics();
   const viewport = lyricsViewportRef.value;
+  if (!viewport) return;
+
+  // First, ensure the current sentence is rendered in the virtual list
+  // by setting scroll position to bring it into view
   const viewportHeight = viewport.clientHeight;
-  // Calculate target scroll position based on current sentence index
-  const targetScrollTop = currentSentenceIndex.value * estimatedSentenceHeight.value - (viewportHeight / 2) + (estimatedSentenceHeight.value / 2);
-  const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, viewport.scrollHeight - viewportHeight));
+  const targetScrollTop = currentSentenceIndex.value * estimatedSentenceHeight.value - viewportHeight / 2;
+
+  // Clamp to valid range
+  const maxScroll = Math.max(0, viewport.scrollHeight - viewportHeight);
+  const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScroll));
+
+  // Set both state and DOM
   lyricsScrollTop.value = clampedScrollTop;
   viewport.scrollTop = clampedScrollTop;
-  // Ensure sync after scroll
-  nextTick(() => syncLyricsViewportMetrics());
+
+  // After rendering, fine-tune using actual element position if available
+  nextTick(() => {
+    if (currentSentenceEl) {
+      const elTop = currentSentenceEl.offsetTop;
+      const elHeight = currentSentenceEl.offsetHeight;
+      const centerOffset = (viewportHeight - elHeight) / 2;
+      const fineTunedTop = elTop - centerOffset;
+
+      lyricsScrollTop.value = Math.max(0, Math.min(fineTunedTop, maxScroll));
+      viewport.scrollTop = Math.max(0, Math.min(fineTunedTop, maxScroll));
+    }
+    syncLyricsViewportMetrics();
+  });
 }
 
 function maybeLoadMoreFromViewport() {
