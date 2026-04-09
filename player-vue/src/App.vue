@@ -126,10 +126,6 @@
             <div class="slider-legend"><span>慢</span><span>正常</span><span>快</span></div>
 
             <div class="toggle-row">
-              <span>自动朗读下一句</span>
-              <button class="inline-switch" :class="{ active: autoPlayNext }" type="button" @click="autoPlayNext = !autoPlayNext"></button>
-            </div>
-            <div class="toggle-row">
               <span>使用服务 TTS</span>
               <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
             </div>
