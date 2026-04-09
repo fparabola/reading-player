@@ -933,46 +933,7 @@ async function analyzeSentence() {
 
 function renderAnalyzeContent(raw) {
   if (!raw) return "";
-  // 使用简单的Markdown渲染，避免marked库的性能问题
-  const escapeHtml = (str) =>
-    str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
-
-  let html = escapeHtml(raw);
-
-  // code blocks
-  html = html.replace(/```([\s\S]*?)```/g, (m, code) =>
-    `<pre><code>${code}</code></pre>`
-  );
-  // inline code
-  html = html.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
-  // headings
-  html = html.replace(/^###\s+(.*)$/gm, '<h3>$1</h3>');
-  html = html.replace(/^##\s+(.*)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^#\s+(.*)$/gm, '<h1>$1</h1>');
-  // bold/italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-
-  // lists
-  html = html.replace(/^\s*-\s+(.*)$/gm, '<li>$1</li>');
-  html = html.replace(/^\s*\d+\.\s+(.*)$/gm, '<li>$1</li>');
-  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>');
-
-  // paragraphs & line breaks
-  html = html.replace(/\n{2,}/g, '</p><p>');
-  html = `<p>${html.replace(/\n/g, '<br>')}</p>`;
-  html = html.replace(/<p>\s*<\/p>/g, '');
-  html = html.replace(/<p>(<h[1-3]>)/g, '$1');
-  html = html.replace(/(<\/h[1-3]>)<\/p>/g, '$1');
-  html = html.replace(/<p>(<ul>)/g, '$1');
-  html = html.replace(/(<\/ul>)<\/p>/g, '$1');
-
-  return html;
+  return marked.parse(raw, { async: false });
 }
 
 function toggleWord(word) {
