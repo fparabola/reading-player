@@ -362,6 +362,10 @@ async function initializePlayer() {
     if (savedState?.chapter) {
       currentChapter.value = savedState.chapter;
     }
+    // 恢复全局设置（不依赖于书籍和章节）
+    if (savedState?.fontScaleLevel) {
+      fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
+    }
     // 尝试应用保存的状态，如果成功则直接返回
     if (applySavedReadingState(savedState)) {
       isInitialLoading.value = false;
