@@ -177,7 +177,7 @@
             <div v-if="analyzeResult.error" class="analyze-error">
               {{ analyzeResult.error }}
             </div>
-            <div v-else class="analyze-markdown" v-html="marked.parse(analyzeResult.raw || '')"></div>
+            <div v-else class="analyze-markdown" v-html="parsedAnalyzeContent"></div>
           </div>
           <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
         </article>
@@ -301,6 +301,10 @@ const fontScaleStyle = computed(() => FONT_SCALE_MAP[fontScaleLevel.value] || FO
 const numericPlaybackRate = computed(() => clampPlaybackRate(playbackRate.value));
 const formattedPlaybackRate = computed(() => formatPlaybackRateLabel(numericPlaybackRate.value));
 const rateMenuOptions = computed(() => [...rateOptions].sort((a, b) => b - a));
+const parsedAnalyzeContent = computed(() => {
+  if (!analyzeResult.value?.raw) return "";
+  return marked.parse(analyzeResult.value.raw, { async: false });
+});
 // 移除虚拟滚动相关计算属性，直接显示所有句子
 const vocabularyItems = computed(() =>
   (currentSentence.value.vocabulary || []).map((item) => ({
