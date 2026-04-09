@@ -98,7 +98,7 @@
 
           <div class="timeline">
             <input
-              v-model="progressValue"
+              v-model.number="progressValue"
               class="timeline-range"
               type="range"
               min="0"
@@ -107,10 +107,7 @@
               :disabled="!hasSentence"
               @input="onSeek"
             />
-            <div class="timeline-labels">
-              <span>{{ elapsedLabel }}</span>
-              <span>{{ durationLabel }}</span>
-            </div>
+
           </div>
 
           <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
@@ -281,8 +278,7 @@ const chapterProgress = computed(() => {
   if (!chapterSentences.value.length) return 0;
   return Math.round(((currentSentenceIndex.value + 1) / chapterSentences.value.length) * 100);
 });
-const elapsedLabel = computed(() => formatTime((currentSentenceIndex.value + 1) * 6));
-const durationLabel = computed(() => formatTime(Math.max(chapterSentences.value.length * 6, 6)));
+
 const currentSentence = computed(() => chapterSentences.value[currentSentenceIndex.value] || emptySentence);
 const fontScaleStyle = computed(() => FONT_SCALE_MAP[fontScaleLevel.value] || FONT_SCALE_MAP.md);
 const numericPlaybackRate = computed(() => clampPlaybackRate(playbackRate.value));
@@ -305,7 +301,10 @@ const statusText = computed(() => {
 });
 
 watch(currentSentenceIndex, (value) => {
-  progressValue.value = value;
+  // 在恢复状态时，不设置progressValue，避免覆盖applySavedReadingState中设置的值
+  if (!isRestoringState) {
+    progressValue.value = value;
+  }
   centerCurrentSentence(true);
 });
 
@@ -365,16 +364,23 @@ async function initializePlayer() {
   try {
     const savedState = loadReadingState();
     await loadBooks();
+    // 如果有保存的书籍，优先使用保存的书籍
     if (savedState?.book && bookOptions.value.includes(savedState.book)) {
       currentBook.value = savedState.book;
     }
     if (currentBook.value) {
       await loadChapters(currentBook.value);
     }
-    if (savedState?.chapter && chapterOptions.value.includes(savedState.chapter)) {
+    // 如果有保存的章节，优先使用保存的章节
+    if (savedState?.chapter) {
       currentChapter.value = savedState.chapter;
     }
-    if (applySavedReadingState(savedState)) return;
+    // 尝试应用保存的状态，如果成功则直接返回
+    if (applySavedReadingState(savedState)) {
+      isInitialLoading.value = false;
+      return;
+    }
+    // 如果无法应用保存的状态，则加载新章节
     if (currentBook.value && currentChapter.value) {
       await loadChapter({ resetSentences: true });
     }
@@ -415,6 +421,9 @@ async function onBookChange() {
 }
 
 async function onChapterSelect() {
+  // 防止在页面初始化时被调用，导致进度条重置
+  if (isInitialLoading.value) return;
+  
   stopPlayback();
   if (!currentChapter.value) return;
   await reloadCurrentChapter();
@@ -885,27 +894,44 @@ function loadReadingState() {
 }
 
 function applySavedReadingState(savedState) {
+  console.log('Applying saved state:', savedState);
   if (!savedState) return false;
   if (!savedState.book || !savedState.chapter) return false;
-  if (savedState.book !== currentBook.value || savedState.chapter !== currentChapter.value) return false;
-  if (!Array.isArray(savedState.chapterSentences) || !savedState.chapterSentences.length) return false;
+  console.log('Current book:', currentBook.value, 'Current chapter:', currentChapter.value);
+  if (savedState.book !== currentBook.value || savedState.chapter !== currentChapter.value) {
+    console.log('Book or chapter mismatch, not applying saved state');
+    return false;
+  }
+  if (!Array.isArray(savedState.chapterSentences) || !savedState.chapterSentences.length) {
+    console.log('No chapter sentences in saved state, not applying');
+    return false;
+  }
 
   isRestoringState = true;
   chapterSentences.value = savedState.chapterSentences;
   currentPosition.value = Number(savedState.currentPosition || 0);
   chapterFinished.value = Boolean(savedState.chapterFinished);
-  currentSentenceIndex.value = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
-  console.log('Restored currentSentenceIndex:', currentSentenceIndex.value);
-  progressValue.value = currentSentenceIndex.value;
+  const restoredIndex = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
+  console.log('Restored currentSentenceIndex:', restoredIndex);
+  console.log('chapterSentences.length:', chapterSentences.value.length);
+  console.log('safeSentenceCount:', Math.max(chapterSentences.value.length, 1));
+  
+  // 先设置currentSentenceIndex
+  currentSentenceIndex.value = restoredIndex;
+  
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   contentScrollTop.value = Number(savedState.contentScrollTop || 0);
-  isRestoringState = false;
   
-  // 滚动到保存的位置
+  // 等待DOM更新完成后再设置progressValue和滚动
+  // 这样确保timeline-range的max属性已经更新，progressValue不会被浏览器截断
   nextTick(() => {
+    console.log('Setting progressValue in nextTick:', restoredIndex);
+    progressValue.value = restoredIndex;
+    // 在设置progressValue之后再关闭恢复状态标志
+    isRestoringState = false;
     const viewport = contentViewportRef.value;
     if (viewport) {
       viewport.scrollTop = contentScrollTop.value;
@@ -932,6 +958,7 @@ function persistReadingState() {
     fontScaleLevel: fontScaleLevel.value,
     contentScrollTop: contentScrollTop.value
   };
+  console.log('Saving reading state:', payload);
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
 
