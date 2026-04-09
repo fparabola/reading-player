@@ -48,7 +48,7 @@
                   <span
                     v-for="(item, index) in chapterSentences"
                     :key="index"
-                    :ref="index === currentSentenceIndex ? setCurrentSentenceRef : null"
+                    :ref="index === currentSentenceIndex.value ? setCurrentSentenceRef : null"
                     class="content-sentence"
                     :class="sentenceClass(index)"
                     v-html="item.english.replace(/\n/g, '<br/>')"
@@ -870,12 +870,23 @@ function applySavedReadingState(savedState) {
   currentPosition.value = Number(savedState.currentPosition || 0);
   chapterFinished.value = Boolean(savedState.chapterFinished);
   currentSentenceIndex.value = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
+  console.log('Restored currentSentenceIndex:', currentSentenceIndex.value);
   progressValue.value = currentSentenceIndex.value;
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
+  contentScrollTop.value = Number(savedState.contentScrollTop || 0);
   isRestoringState = false;
+  
+  // 滚动到保存的位置
+  nextTick(() => {
+    const viewport = contentViewportRef.value;
+    if (viewport) {
+      viewport.scrollTop = contentScrollTop.value;
+    }
+  });
+  
   return true;
 }
 
@@ -891,7 +902,8 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,
-    fontScaleLevel: fontScaleLevel.value
+    fontScaleLevel: fontScaleLevel.value,
+    contentScrollTop: contentScrollTop.value
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
