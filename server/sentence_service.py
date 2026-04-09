@@ -275,9 +275,6 @@ def split_sentences_rule(text: str) -> List[str]:
     if not text or not text.strip():
         return []
 
-    # 保留换行符，只去除多余空格
-    text = re.sub(r'\s+', ' ', text.strip())
-
     sentences = []
     start = 0
     i = 0
@@ -292,8 +289,8 @@ def split_sentences_rule(text: str) -> List[str]:
             i += 1
             continue
 
-        # 查找句子的结束标记
-        if text[i] not in '.!?':
+        # 查找句子的结束标记（包括中文标点）
+        if text[i] not in '.!？。':
             i += 1
             continue
 
@@ -310,9 +307,10 @@ def split_sentences_rule(text: str) -> List[str]:
             i += 1
             continue
 
-        # 2. 检查是否是省略号 "..."
-        if i + 2 < n and text[i+1] == '.' and text[i+2] == '.':
-            i += 3
+        # 2. 检查是否是省略号 "..." 或 "……"
+        if (i + 2 < n and text[i+1] == '.' and text[i+2] == '.') or \
+           (i + 1 < n and text[i+1] == '…'):
+            i += 3 if text[i+1] == '.' else 2
             continue
 
         # 3. 检查点号前是否是已知缩写
@@ -332,7 +330,7 @@ def split_sentences_rule(text: str) -> List[str]:
             i += 1
             continue
 
-        # 4. 检查后面是否是大写字母（新句子开始）
+        # 4. 检查后面是否是大写字母（新句子开始）或换行
         j = i + 1
         while j < n and text[j].isspace():
             j += 1
@@ -344,18 +342,16 @@ def split_sentences_rule(text: str) -> List[str]:
                 continue
 
         i += 1
-        sentence = text[start:i].strip()
-        if sentence:
+        # 保留原始文本，包括换行符和空格
+        sentence = text[start:i]
+        if sentence.strip():
             sentences.append(sentence)
 
         start = i
-        while start < n and text[start].isspace():
-            start += 1
-        i = start
 
     if start < n:
-        sentence = text[start:].strip()
-        if sentence:
+        sentence = text[start:]
+        if sentence.strip():
             sentences.append(sentence)
 
     return sentences

@@ -145,6 +145,8 @@ button { border: 0; color: inherit; background: none; }
   line-height: 1.95;
   color: rgba(244, 246, 255, 0.8);
 }
+
+
 .content-sentence {
   display: inline;
   cursor: pointer;

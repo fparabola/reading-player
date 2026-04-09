@@ -470,6 +470,7 @@ async function loadMoreContent(force = false) {
     }
 
     chapterSentences.value = [...chapterSentences.value, ...newCards];
+    console.log('chapterSentences:', chapterSentences.value);
     chapterFinished.value = false;
   } catch (error) {
     handleError(error);
@@ -489,8 +490,11 @@ async function splitIntoCards(text) {
 }
 
 function sentenceToCard(sentence) {
-  const plain = sentence.trim(); // 保留换行符
-  const words = plain.replace(/[^\w\s']/g, "").split(/\s+/).filter(Boolean);
+  // 保留原始句子，包括换行符
+  const plain = sentence;
+  // 去除空白字符用于提取关键词和预览
+  const trimmed = sentence.trim();
+  const words = trimmed.replace(/[^\w\s']/g, "").split(/\s+/).filter(Boolean);
   const keyword = (words.find((word) => word.length >= 5) || words[0] || "word").replace(/[^a-zA-Z']/g, "") || "word";
   const preview = words.slice(0, 4).join(" ");
   return {
@@ -813,6 +817,10 @@ function sentenceClass(index) {
     tier3: distance === 3,
     tier4: distance >= 4
   };
+}
+
+function hasNewline(text) {
+  return text.includes('\n');
 }
 
 function toggleTts() {
