@@ -156,7 +156,7 @@ button { border: 0; color: inherit; background: none; }
 
 .content-sentence.current {
   color: #ffffff;
-  background: rgba(114, 136, 255, 0.16);
+  background: rgba(76, 175, 80, 0.3);
   padding: 2px 4px;
 }
 .content-sentence:not(.current) {
