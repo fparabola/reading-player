@@ -921,10 +921,14 @@ async function analyzeSentence() {
   if (!hasSentence.value || isAnalyzing.value) return;
   isAnalyzing.value = true;
   analyzeResult.value = null;
-  
+
   try {
     const text = currentSentence.value.english;
-    const response = await fetch(buildApiUrl(`/analyze?text=${encodeURIComponent(text)}`));
+    const response = await fetch(buildApiUrl("/analyze"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
     if (!response.ok) throw new Error("解析服务调用失败");
     analyzeResult.value = await response.json();
   } catch (error) {
