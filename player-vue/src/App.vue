@@ -676,7 +676,8 @@ async function requestTtsAudio(text, token) {
 
     const audio = audioRef.value;
     audio.src = currentAudioUrl;
-    audio.playbackRate = playbackRate.value;
+    // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
+    audio.playbackRate = 1.0;
     await audio.play();
     return;
   }
@@ -691,7 +692,8 @@ async function requestTtsAudio(text, token) {
   currentAudioUrl = URL.createObjectURL(blob);
   const audio = audioRef.value;
   audio.src = currentAudioUrl;
-  audio.playbackRate = playbackRate.value;
+  // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
+  audio.playbackRate = 1.0;
   await audio.play();
 }
 
