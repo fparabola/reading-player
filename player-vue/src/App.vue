@@ -163,24 +163,7 @@
             <div v-if="analyzeResult.error" class="analyze-error">
               {{ analyzeResult.error }}
             </div>
-            <div v-else>
-              <div v-if="analyzeResult.translation" class="analyze-section">
-                <h4>翻译</h4>
-                <p>{{ analyzeResult.translation }}</p>
-              </div>
-              <div v-if="analyzeResult.grammar" class="analyze-section">
-                <h4>语法</h4>
-                <p>{{ analyzeResult.grammar }}</p>
-              </div>
-              <div v-if="analyzeResult.vocabulary && analyzeResult.vocabulary.length" class="analyze-section">
-                <h4>词汇</h4>
-                <ul class="bullet-list">
-                  <li v-for="word in analyzeResult.vocabulary" :key="word.word">
-                    <strong>{{ word.word }}</strong> <span v-if="word.pos">({{ word.pos }})</span>: {{ word.meaning }}
-                  </li>
-                </ul>
-              </div>
-            </div>
+            <pre v-else class="analyze-markdown">{{ analyzeResult.raw }}</pre>
           </div>
           <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
         </article>
@@ -920,7 +903,7 @@ function toggleAutoAnalyze() {
 async function analyzeSentence() {
   if (!hasSentence.value || isAnalyzing.value) return;
   isAnalyzing.value = true;
-  analyzeResult.value = { translation: "", grammar: "", vocabulary: [] };
+  analyzeResult.value = { raw: "" };
 
   try {
     const text = currentSentence.value.english;
@@ -951,38 +934,8 @@ async function analyzeSentence() {
 }
 
 function parseAnalyzeResult(text) {
-  // 解析流式返回的文本，提取翻译、语法和词汇
-  // 使用Object.assign保持响应式引用，只更新有变化的部分
-  const result = analyzeResult.value || { translation: "", grammar: "", vocabulary: [] };
-
-  // 尝试提取翻译部分
-  const translationMatch = text.match(/翻译[:：]\s*([^\n]+(?:\n(?![\d一二三四五六七八九十]、|语法|词汇).*)*)/i);
-  if (translationMatch) {
-    result.translation = translationMatch[1].trim();
-  }
-
-  // 尝试提取语法部分
-  const grammarMatch = text.match(/语法[:：]\s*([^\n]+(?:\n(?![\d一二三四五六七八九十]、|翻译|词汇).*)*)/i);
-  if (grammarMatch) {
-    result.grammar = grammarMatch[1].trim();
-  }
-
-  // 尝试提取词汇部分（累积所有匹配）
-  const vocabMatches = text.matchAll(/[\d一二三四五六七八九十][\.、]\s*(\w+)\s*[（(]([^)）]+)[)）]\s*[:：]\s*([^\n]+)/g);
-  const newVocabulary = [];
-  for (const match of vocabMatches) {
-    newVocabulary.push({
-      word: match[1].trim(),
-      pos: match[2].trim(),
-      meaning: match[3].trim()
-    });
-  }
-  if (newVocabulary.length > 0) {
-    result.vocabulary = newVocabulary;
-  }
-
-  // 强制触发Vue更新
-  analyzeResult.value = { ...result };
+  // 直接保存原始Markdown文本
+  analyzeResult.value = { raw: text };
 }
 
 function toggleWord(word) {

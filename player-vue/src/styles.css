@@ -296,10 +296,18 @@ button { border: 0; color: inherit; background: none; }
 .card-title-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .analyze-card { grid-column: 1 / -1; }
 .analyze-content { max-height: 400px; overflow-y: auto; }
-.analyze-section { margin-bottom: 18px; }
-.analyze-section h4 { margin: 0 0 10px; font-size: 18px; color: var(--accent-strong); }
-.analyze-section p { margin: 0; line-height: 1.7; color: rgba(240, 243, 255, 0.88); }
-.analyze-section ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.8; }
+.analyze-markdown {
+  margin: 0;
+  padding: 16px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.8;
+  color: rgba(240, 243, 255, 0.9);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
 .analyze-error { color: #ff6b6b; }
 .analyzing-indicator { font-size: 14px; color: var(--accent); animation: pulse 1.5s infinite; }
 @keyframes pulse {
