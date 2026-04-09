@@ -337,7 +337,8 @@ watch(playbackRate, async () => {
 });
 
 watch(fontScaleLevel, () => {
-  nextTick(() => centerCurrentSentence(true));
+  // 字体大小变化后，等待更长时间确保DOM完全更新后再滚动
+  setTimeout(() => centerCurrentSentence(true), 100);
 });
 
 onMounted(async () => {
