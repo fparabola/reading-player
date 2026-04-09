@@ -275,9 +275,8 @@ def split_sentences_rule(text: str) -> List[str]:
     if not text or not text.strip():
         return []
 
-    # 规范化：统一换行符为空格，去除多余空格
-    text = re.sub(r'\r\n|\r|\n', ' ', text.strip())
-    text = re.sub(r'\s+', ' ', text)
+    # 保留换行符，只去除多余空格
+    text = re.sub(r'\s+', ' ', text.strip())
 
     sentences = []
     start = 0
