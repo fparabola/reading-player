@@ -51,7 +51,6 @@
                     :ref="index === currentSentenceIndex ? setCurrentSentenceRef : null"
                     class="content-sentence"
                     :class="sentenceClass(index)"
-                    @click="jumpToSentence(index)"
                     v-html="item.english.replace(/\n/g, '<br/>')"
                   ></span>
                 </div>
