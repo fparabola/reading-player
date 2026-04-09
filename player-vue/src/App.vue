@@ -178,6 +178,7 @@
               {{ analyzeResult.error }}
             </div>
             <div v-else class="analyze-markdown" v-html="renderAnalyzeContent(analyzeResult.raw)"></div>
+            <pre v-if="isAnalyzing" style="color: #666; font-size: 12px; margin-top: 8px;">{{ analyzeResult.raw }}</pre>
           </div>
           <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
         </article>
@@ -906,7 +907,7 @@ async function analyzeSentence() {
     if (!response.ok) throw new Error("解析服务调用失败");
 
     const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    const decoder = new TextDecoder('utf-8');
     let buffer = "";
 
     while (true) {
@@ -914,13 +915,12 @@ async function analyzeSentence() {
       if (done) break;
       
       // 解码新数据并添加到缓冲区
-      buffer += decoder.decode(value, { stream: true });
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
       
       // 直接显示缓冲区内容，像player.html那样
       if (buffer.trim().length > 0) {
         analyzeResult.value = { raw: buffer };
-        // 强制Vue立即更新视图
-        await nextTick();
       }
     }
   } catch (error) {
