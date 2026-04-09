@@ -809,7 +809,11 @@ async def analyze_text_stream(request: AnalyzeRequest):
             if full_text:
                 log_line(f"LLM response: {''.join(full_text)}")
 
-    return StreamingResponse(stream_generator(), media_type="text/plain; charset=utf-8")
+    return StreamingResponse(stream_generator(), media_type="text/event-stream", headers={
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"  # 禁用 nginx 缓冲
+    })
 
 
 if __name__ == "__main__":
