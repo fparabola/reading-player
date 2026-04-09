@@ -168,7 +168,7 @@
       </section>
 
       <section class="insight-grid">
-        <article class="info-card panel analyze-card" v-if="autoAnalyze">
+        <article class="info-card panel analyze-card" v-if="autoAnalyze || analyzeResult">
           <div class="card-title-row">
             <h3>解析</h3>
             <span v-if="isAnalyzing" class="analyzing-indicator">解析中...</span>
