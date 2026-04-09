@@ -808,28 +808,52 @@ function onWindowPointerDown(event) {
 
 
 function centerCurrentSentence(smooth = true) {
-  console.log('centerCurrentSentence called');
   const viewport = contentViewportRef.value;
-  if (!viewport) {
-    console.log('viewport not found');
-    return;
-  }
+  if (!viewport) return;
 
-  // Use scrollIntoView for reliable centering, especially for long sentences
   const currentEl = sentenceRefs.value[currentSentenceIndex.value];
   if (currentEl) {
-    console.log('currentEl found:', currentEl);
-    currentEl.scrollIntoView({
-      behavior: smooth ? 'smooth' : 'auto',
-      block: 'center',
-      inline: 'center'
-    });
+    // 计算当前句子在视口中的位置
+    const viewportRect = viewport.getBoundingClientRect();
+    const elementRect = currentEl.getBoundingClientRect();
     
-    // Update the scroll state to match the actual scroll position
+    // 计算相对于视口的位置（不考虑页面滚动）
+    const relativeTop = elementRect.top - viewportRect.top;
+    const elementHeight = elementRect.height;
+    const viewportHeight = viewportRect.height;
+    
+    // 计算目标滚动位置，使句子居中
+    const targetScrollTop = viewport.scrollTop + relativeTop - (viewportHeight / 2) + (elementHeight / 2);
+    
+    // 只滚动 content-viewport，不滚动整个页面
+    if (smooth) {
+      // 平滑滚动
+      const startScrollTop = viewport.scrollTop;
+      const distance = targetScrollTop - startScrollTop;
+      const duration = 300; // 滚动持续时间
+      let startTime = null;
+      
+      function animateScroll(currentTime) {
+        if (!startTime) startTime = currentTime;
+        const timeElapsed = currentTime - startTime;
+        const progress = Math.min(timeElapsed / duration, 1);
+        // 使用缓动函数
+        const easeProgress = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        viewport.scrollTop = startScrollTop + distance * easeProgress;
+        
+        if (timeElapsed < duration) {
+          requestAnimationFrame(animateScroll);
+        }
+      }
+      
+      requestAnimationFrame(animateScroll);
+    } else {
+      // 直接滚动
+      viewport.scrollTop = targetScrollTop;
+    }
+    
+    // 更新滚动状态
     contentScrollTop.value = viewport.scrollTop;
-  } else {
-    console.log('currentEl not found, currentSentenceIndex:', currentSentenceIndex.value);
-    console.log('sentenceRefs.length:', sentenceRefs.value.length);
   }
   syncContentViewportMetrics();
 }
