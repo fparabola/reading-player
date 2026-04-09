@@ -119,6 +119,7 @@
               <span>使用服务 TTS</span>
               <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
             </div>
+            <div style="margin-top: 16px;"></div>
             <label class="setting-label">语速（{{ formattedPlaybackRate }}x）</label>
             <input v-model.number="playbackRate" class="speed-slider" type="range" min="0.5" max="2" step="0.25" />
             <div class="slider-ticks" aria-hidden="true">
