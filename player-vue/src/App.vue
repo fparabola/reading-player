@@ -952,7 +952,8 @@ async function analyzeSentence() {
 
 function parseAnalyzeResult(text) {
   // 解析流式返回的文本，提取翻译、语法和词汇
-  const result = { translation: "", grammar: "", vocabulary: [] };
+  // 使用Object.assign保持响应式引用，只更新有变化的部分
+  const result = analyzeResult.value || { translation: "", grammar: "", vocabulary: [] };
 
   // 尝试提取翻译部分
   const translationMatch = text.match(/翻译[:：]\s*([^\n]+(?:\n(?![\d一二三四五六七八九十]、|语法|词汇).*)*)/i);
@@ -966,17 +967,22 @@ function parseAnalyzeResult(text) {
     result.grammar = grammarMatch[1].trim();
   }
 
-  // 尝试提取词汇部分
+  // 尝试提取词汇部分（累积所有匹配）
   const vocabMatches = text.matchAll(/[\d一二三四五六七八九十][\.、]\s*(\w+)\s*[（(]([^)）]+)[)）]\s*[:：]\s*([^\n]+)/g);
+  const newVocabulary = [];
   for (const match of vocabMatches) {
-    result.vocabulary.push({
+    newVocabulary.push({
       word: match[1].trim(),
       pos: match[2].trim(),
       meaning: match[3].trim()
     });
   }
+  if (newVocabulary.length > 0) {
+    result.vocabulary = newVocabulary;
+  }
 
-  analyzeResult.value = result;
+  // 强制触发Vue更新
+  analyzeResult.value = { ...result };
 }
 
 function toggleWord(word) {
