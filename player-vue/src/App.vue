@@ -911,13 +911,58 @@ async function analyzeSentence() {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = "";
     let fullText = "";
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      fullText += decoder.decode(value, { stream: true });
-      parseAnalyzeResult(fullText);
+      
+      // 解码新数据并添加到缓冲区
+      buffer += decoder.decode(value, { stream: true });
+      
+      // 按行分割处理SSE格式
+      const lines = buffer.split("\n");
+      // 保留最后一行（可能不完整）到缓冲区
+      buffer = lines.pop() || "";
+      
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        
+        const data = trimmed.slice(5).trim();
+        if (data === "[DONE]") continue;
+        
+        try {
+          const chunk = JSON.parse(data);
+          const delta = chunk.choices?.[0]?.delta?.content;
+          if (delta) {
+            fullText += delta;
+            // 立即更新显示，像ChatGPT那样实时流式显示
+            analyzeResult.value = { raw: fullText };
+          }
+        } catch (e) {
+          // 忽略解析错误的行
+        }
+      }
+    }
+    
+    // 处理缓冲区中剩余的数据
+    if (buffer.trim()) {
+      const trimmed = buffer.trim();
+      if (trimmed.startsWith("data:")) {
+        const data = trimmed.slice(5).trim();
+        if (data !== "[DONE]") {
+          try {
+            const chunk = JSON.parse(data);
+            const delta = chunk.choices?.[0]?.delta?.content;
+            if (delta) {
+              fullText += delta;
+              analyzeResult.value = { raw: fullText };
+            }
+          } catch (e) {}
+        }
+      }
     }
   } catch (error) {
     handleError(error);
@@ -925,10 +970,6 @@ async function analyzeSentence() {
   } finally {
     isAnalyzing.value = false;
   }
-}
-
-function parseAnalyzeResult(text) {
-  analyzeResult.value = { raw: text };
 }
 
 function toggleWord(word) {
