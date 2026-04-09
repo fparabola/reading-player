@@ -48,7 +48,7 @@
                   <span
                     v-for="(item, index) in chapterSentences"
                     :key="index"
-                    :ref="index === currentSentenceIndex.value ? setCurrentSentenceRef : null"
+                    :ref="el => sentenceRefs[index] = el"
                     class="content-sentence"
                     :class="sentenceClass(index)"
                     v-html="item.english.replace(/\n/g, '<br/>')"
@@ -258,7 +258,7 @@ let preloadIndex = -1;    // Which sentence is preloaded
 let playToken = 0;
 let isRestoringState = false;
 const isRateMenuOpen = ref(false);
-let currentSentenceEl = null;
+const sentenceRefs = ref([]);
 
 const emptySentence = {
   english: "",
@@ -517,11 +517,17 @@ function sentenceToCard(sentence) {
 
 function onSeek() {
   currentSentenceIndex.value = Number(progressValue.value);
+  nextTick(() => {
+    centerCurrentSentence();
+  });
   if (isPlaying.value) replayFromCurrent();
 }
 
 function jumpToSentence(index) {
   currentSentenceIndex.value = clampIndex(index, chapterSentences.value.length);
+  nextTick(() => {
+    centerCurrentSentence();
+  });
   if (isPlaying.value) replayFromCurrent();
 }
 
@@ -529,6 +535,9 @@ async function nextPage() {
   if (!hasSentence.value) return;
   if (currentSentenceIndex.value < chapterSentences.value.length - 1) {
     currentSentenceIndex.value += 1;
+    nextTick(() => {
+      centerCurrentSentence();
+    });
     if (isPlaying.value) await playCurrentSentence();
     maybePreloadMore();
     return;
@@ -557,16 +566,25 @@ async function nextPage() {
 function previousPage() {
   if (!hasSentence.value) return;
   currentSentenceIndex.value = Math.max(currentSentenceIndex.value - 1, 0);
+  nextTick(() => {
+    centerCurrentSentence();
+  });
   if (isPlaying.value) replayFromCurrent();
 }
 
 function goToStart() {
   currentSentenceIndex.value = 0;
+  nextTick(() => {
+    centerCurrentSentence();
+  });
   if (isPlaying.value) replayFromCurrent();
 }
 
 function goToEnd() {
   currentSentenceIndex.value = Math.max(chapterSentences.value.length - 1, 0);
+  nextTick(() => {
+    centerCurrentSentence();
+  });
   if (isPlaying.value) replayFromCurrent();
 }
 
@@ -761,17 +779,21 @@ function onWindowPointerDown(event) {
   isRateMenuOpen.value = false;
 }
 
-function setCurrentSentenceRef(el) {
-  currentSentenceEl = el;
-}
+
 
 function centerCurrentSentence(smooth = true) {
+  console.log('centerCurrentSentence called');
   const viewport = contentViewportRef.value;
-  if (!viewport) return;
+  if (!viewport) {
+    console.log('viewport not found');
+    return;
+  }
 
   // Use scrollIntoView for reliable centering, especially for long sentences
-  if (currentSentenceEl) {
-    currentSentenceEl.scrollIntoView({
+  const currentEl = sentenceRefs.value[currentSentenceIndex.value];
+  if (currentEl) {
+    console.log('currentEl found:', currentEl);
+    currentEl.scrollIntoView({
       behavior: smooth ? 'smooth' : 'auto',
       block: 'center',
       inline: 'center'
@@ -779,6 +801,9 @@ function centerCurrentSentence(smooth = true) {
     
     // Update the scroll state to match the actual scroll position
     contentScrollTop.value = viewport.scrollTop;
+  } else {
+    console.log('currentEl not found, currentSentenceIndex:', currentSentenceIndex.value);
+    console.log('sentenceRefs.length:', sentenceRefs.value.length);
   }
   syncContentViewportMetrics();
 }
@@ -884,6 +909,8 @@ function applySavedReadingState(savedState) {
     const viewport = contentViewportRef.value;
     if (viewport) {
       viewport.scrollTop = contentScrollTop.value;
+      // 确保当前句子在视口内
+      centerCurrentSentence(false);
     }
   });
   
