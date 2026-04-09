@@ -920,23 +920,63 @@ function toggleAutoAnalyze() {
 async function analyzeSentence() {
   if (!hasSentence.value || isAnalyzing.value) return;
   isAnalyzing.value = true;
-  analyzeResult.value = null;
+  analyzeResult.value = { translation: "", grammar: "", vocabulary: [] };
 
   try {
     const text = currentSentence.value.english;
-    const response = await fetch(buildApiUrl("/analyze"), {
+    const response = await fetch(buildApiUrl("/analyze_stream"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text })
     });
     if (!response.ok) throw new Error("解析服务调用失败");
-    analyzeResult.value = await response.json();
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      fullText += decoder.decode(value, { stream: true });
+      // 实时更新解析结果
+      parseAnalyzeResult(fullText);
+    }
   } catch (error) {
     handleError(error);
     analyzeResult.value = { error: error.message };
   } finally {
     isAnalyzing.value = false;
   }
+}
+
+function parseAnalyzeResult(text) {
+  // 解析流式返回的文本，提取翻译、语法和词汇
+  const result = { translation: "", grammar: "", vocabulary: [] };
+
+  // 尝试提取翻译部分
+  const translationMatch = text.match(/翻译[:：]\s*([^\n]+(?:\n(?![\d一二三四五六七八九十]、|语法|词汇).*)*)/i);
+  if (translationMatch) {
+    result.translation = translationMatch[1].trim();
+  }
+
+  // 尝试提取语法部分
+  const grammarMatch = text.match(/语法[:：]\s*([^\n]+(?:\n(?![\d一二三四五六七八九十]、|翻译|词汇).*)*)/i);
+  if (grammarMatch) {
+    result.grammar = grammarMatch[1].trim();
+  }
+
+  // 尝试提取词汇部分
+  const vocabMatches = text.matchAll(/[\d一二三四五六七八九十][\.、]\s*(\w+)\s*[（(]([^)）]+)[)）]\s*[:：]\s*([^\n]+)/g);
+  for (const match of vocabMatches) {
+    result.vocabulary.push({
+      word: match[1].trim(),
+      pos: match[2].trim(),
+      meaning: match[3].trim()
+    });
+  }
+
+  analyzeResult.value = result;
 }
 
 function toggleWord(word) {
