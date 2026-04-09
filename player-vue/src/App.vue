@@ -178,7 +178,7 @@
               {{ analyzeResult.error }}
             </div>
             <div v-else class="analyze-markdown" v-html="renderAnalyzeContent(analyzeResult.raw)"></div>
-            <pre v-if="isAnalyzing" style="color: #666; font-size: 12px; margin-top: 8px;">{{ analyzeResult.raw }}</pre>
+            <pre style="color: #666; font-size: 12px; margin-top: 8px;">{{ analyzeResult.raw }}</pre>
           </div>
           <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
         </article>
@@ -917,6 +917,9 @@ async function analyzeSentence() {
       // 解码新数据并添加到缓冲区
       const chunk = decoder.decode(value, { stream: true });
       buffer += chunk;
+      
+      // 调试日志：确认实时接收数据
+      console.log('[analyze] received chunk:', chunk, 'buffer:', buffer);
       
       // 直接显示缓冲区内容，像 player.html 那样
       // 每次创建新对象来强制触发 Vue 响应式更新
