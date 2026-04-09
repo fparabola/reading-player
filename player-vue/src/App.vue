@@ -115,6 +115,10 @@
 
           <div class="settings-group">
             <h3>朗读设置</h3>
+            <div class="toggle-row">
+              <span>使用服务 TTS</span>
+              <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
+            </div>
             <label class="setting-label">语速（{{ formattedPlaybackRate }}x）</label>
             <input v-model.number="playbackRate" class="speed-slider" type="range" min="0.5" max="2" step="0.25" />
             <div class="slider-ticks" aria-hidden="true">
@@ -124,11 +128,6 @@
               </span>
             </div>
             <div class="slider-legend"><span>慢</span><span>正常</span><span>快</span></div>
-
-            <div class="toggle-row">
-              <span>使用服务 TTS</span>
-              <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
-            </div>
           </div>
 
           <div class="settings-group">
