@@ -4,7 +4,10 @@ module.exports = {
       "^/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
-        pathRewrite: { "^/api": "" }
+        pathRewrite: { "^/api": "" },
+        onProxyRes: function(proxyRes) {
+          proxyRes.headers["x-accel-buffering"] = "no";
+        }
       }
     }
   }

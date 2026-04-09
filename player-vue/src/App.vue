@@ -224,9 +224,7 @@ import { marked } from "marked";
 const DEFAULT_MIN_SIZE = 500;
 const DEFAULT_BOOK = "哈利波特1-7英文原版";
 const STORAGE_KEY = "player_vue_reading_state";
-const API_CANDIDATES = process.env.NODE_ENV === "development"
-  ? ["/api", "http://localhost:8000", "http://127.0.0.1:8000"]
-  : [window.location.origin, "http://localhost:8000", "http://127.0.0.1:8000"];
+const API_CANDIDATES = ["http://localhost:8000", "http://127.0.0.1:8000"];
 
 const FONT_SCALE_MAP = {
   sm: { "--player-english-size": "14px", "--player-empty-size": "14px" },
@@ -907,22 +905,12 @@ async function analyzeSentence() {
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
-    let buffer = "";
-    let chunkCount = 0;
+    let buffer = '';
 
     while (true) {
-      const { done, value } = await reader.read();
+      const { value, done } = await reader.read();
       if (done) break;
-      
-      // 解码新数据并添加到缓冲区
-      const chunk = decoder.decode(value, { stream: true });
-      buffer += chunk;
-      chunkCount++;
-      
-      // 调试日志：确认实时接收数据
-      console.log(`[analyze] chunk ${chunkCount}:`, chunk, '| buffer:', buffer);
-      
-      // 直接显示缓冲区内容
+      buffer += decoder.decode(value, { stream: true });
       if (buffer.trim().length > 0) {
         analyzeResult.value = { raw: buffer };
       }
