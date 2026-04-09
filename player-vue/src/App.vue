@@ -132,6 +132,14 @@
           </div>
 
           <div class="settings-group">
+            <h3>解析设置</h3>
+            <div class="toggle-row">
+              <span>自动解析</span>
+              <button class="inline-switch" :class="{ active: autoAnalyze }" type="button" @click="toggleAutoAnalyze"></button>
+            </div>
+          </div>
+
+          <div class="settings-group">
             <h3>外观</h3>
             <div class="font-row">
               <span>字体大小</span>
@@ -145,14 +153,38 @@
         </aside>
       </section>
 
-      <section class="insight-tabs panel">
-        <button v-for="tab in tabs" :key="tab" type="button" class="tab-button" :class="{ active: activeTab === tab }" @click="activeTab = tab">
-          {{ tab }}
-          <span v-if="tab === '词汇'">{{ vocabularyCount }}</span>
-        </button>
-      </section>
-
       <section class="insight-grid">
+        <article class="info-card panel analyze-card" v-if="autoAnalyze">
+          <div class="card-title-row">
+            <h3>解析</h3>
+            <span v-if="isAnalyzing" class="analyzing-indicator">解析中...</span>
+          </div>
+          <div v-if="analyzeResult" class="analyze-content">
+            <div v-if="analyzeResult.error" class="analyze-error">
+              {{ analyzeResult.error }}
+            </div>
+            <div v-else>
+              <div v-if="analyzeResult.translation" class="analyze-section">
+                <h4>翻译</h4>
+                <p>{{ analyzeResult.translation }}</p>
+              </div>
+              <div v-if="analyzeResult.grammar" class="analyze-section">
+                <h4>语法</h4>
+                <p>{{ analyzeResult.grammar }}</p>
+              </div>
+              <div v-if="analyzeResult.vocabulary && analyzeResult.vocabulary.length" class="analyze-section">
+                <h4>词汇</h4>
+                <ul class="bullet-list">
+                  <li v-for="word in analyzeResult.vocabulary" :key="word.word">
+                    <strong>{{ word.word }}</strong> <span v-if="word.pos">({{ word.pos }})</span>: {{ word.meaning }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
+        </article>
+
         <article class="info-card panel">
           <h3>翻译</h3>
           <p>{{ currentSentence.translation }}</p>
@@ -219,6 +251,7 @@ const errorMessage = ref("");
 const activeTab = ref("解析");
 const tabs = ["解析", "词汇", "语法", "笔记"];
 const autoPlayNext = ref(true);
+const autoAnalyze = ref(false);
 const fontScaleLevel = ref("md");
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
@@ -233,6 +266,8 @@ const contentScrollTop = ref(0);
 const contentViewportHeight = ref(360);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
+const analyzeResult = ref(null);
+const isAnalyzing = ref(false);
 
 let advanceTimer = null;
 let currentAudioUrl = null;
@@ -306,6 +341,7 @@ watch(
       playbackRate,
       ttsEnabled,
       autoPlayNext,
+      autoAnalyze,
       fontScaleLevel,
       () => chapterSentences.value
     ],
@@ -328,6 +364,13 @@ watch(playbackRate, async () => {
 watch(fontScaleLevel, () => {
   // 字体大小变化后，等待更长时间确保DOM完全更新后再滚动
   setTimeout(() => centerCurrentSentence(true), 100);
+});
+
+watch(currentSentenceIndex, () => {
+  // 当句子切换时，如果开启了自动解析，自动调用analyze接口
+  if (autoAnalyze.value && hasSentence.value) {
+    analyzeSentence();
+  }
 });
 
 onMounted(async () => {
@@ -867,6 +910,31 @@ function toggleTts() {
   if (isPlaying.value) replayFromCurrent();
 }
 
+function toggleAutoAnalyze() {
+  autoAnalyze.value = !autoAnalyze.value;
+  if (autoAnalyze.value && hasSentence.value) {
+    analyzeSentence();
+  }
+}
+
+async function analyzeSentence() {
+  if (!hasSentence.value || isAnalyzing.value) return;
+  isAnalyzing.value = true;
+  analyzeResult.value = null;
+  
+  try {
+    const text = currentSentence.value.english;
+    const response = await fetch(buildApiUrl(`/analyze?text=${encodeURIComponent(text)}`));
+    if (!response.ok) throw new Error("解析服务调用失败");
+    analyzeResult.value = await response.json();
+  } catch (error) {
+    handleError(error);
+    analyzeResult.value = { error: error.message };
+  } finally {
+    isAnalyzing.value = false;
+  }
+}
+
 function toggleWord(word) {
   if (!word) return;
   if (savedWords.has(word)) savedWords.delete(word);
@@ -927,6 +995,7 @@ function applySavedReadingState(savedState) {
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
+  autoAnalyze.value = typeof savedState.autoAnalyze === "boolean" ? savedState.autoAnalyze : autoAnalyze.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   contentScrollTop.value = Number(savedState.contentScrollTop || 0);
   
@@ -960,6 +1029,7 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,
+    autoAnalyze: autoAnalyze.value,
     fontScaleLevel: fontScaleLevel.value,
     contentScrollTop: contentScrollTop.value
   };
