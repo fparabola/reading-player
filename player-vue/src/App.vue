@@ -348,6 +348,8 @@ onBeforeUnmount(() => {
 
 async function initializePlayer() {
   isInitialLoading.value = true;
+  // 在整个初始化过程中禁止保存状态，防止覆盖原进度
+  isRestoringState = true;
   try {
     const savedState = loadReadingState();
     await loadBooks();
@@ -370,8 +372,6 @@ async function initializePlayer() {
     const hasSentences = applySavedReadingState(savedState);
     if (!hasSentences && currentBook.value && currentChapter.value) {
       // 如果没有句子数据，先加载章节内容
-      // 设置isRestoringState为true，防止loadChapter重置进度时触发persistReadingState
-      isRestoringState = true;
       await loadChapter({ resetSentences: true });
       // 加载完成后恢复进度（如果有保存的进度）
       if (savedState?.currentSentenceIndex !== undefined && savedState.currentSentenceIndex > 0) {
@@ -380,7 +380,6 @@ async function initializePlayer() {
         progressValue.value = restoredIndex;
         nextTick(() => centerCurrentSentence(false));
       }
-      isRestoringState = false;
     }
     if (hasSentences) {
       isInitialLoading.value = false;
@@ -388,6 +387,8 @@ async function initializePlayer() {
     }
   } finally {
     isInitialLoading.value = false;
+    // 初始化完成后允许保存状态
+    isRestoringState = false;
   }
 }
 
