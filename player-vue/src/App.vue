@@ -167,13 +167,6 @@
         </aside>
       </section>
 
-      <section class="insight-tabs panel">
-        <button v-for="tab in tabs" :key="tab" type="button" class="tab-button" :class="{ active: activeTab === tab }" @click="activeTab = tab">
-          {{ tab }}
-          <span v-if="tab === '词汇'">{{ vocabularyCount }}</span>
-        </button>
-      </section>
-
       <section class="insight-grid">
         <article class="info-card panel analyze-card" v-if="autoAnalyze">
           <div class="card-title-row">
@@ -253,8 +246,6 @@ const chapterFinished = ref(false);
 const isInitialLoading = ref(false);
 const isLoadingMore = ref(false);
 const errorMessage = ref("");
-const activeTab = ref("解析");
-const tabs = ["解析", "词汇", "语法", "笔记"];
 const autoPlayNext = ref(true);
 const autoAnalyze = ref(false);
 const fontScaleLevel = ref("md");
