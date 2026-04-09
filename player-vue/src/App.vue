@@ -366,14 +366,22 @@ async function initializePlayer() {
     if (savedState?.fontScaleLevel) {
       fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
     }
-    // 尝试应用保存的状态，如果成功则直接返回
-    if (applySavedReadingState(savedState)) {
+    // 尝试应用保存的状态
+    const hasSentences = applySavedReadingState(savedState);
+    if (!hasSentences && currentBook.value && currentChapter.value) {
+      // 如果没有句子数据，先加载章节内容
+      await loadChapter({ resetSentences: true });
+      // 加载完成后恢复进度（如果有保存的进度）
+      if (savedState?.currentSentenceIndex !== undefined && savedState.currentSentenceIndex > 0) {
+        const restoredIndex = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
+        currentSentenceIndex.value = restoredIndex;
+        progressValue.value = restoredIndex;
+        nextTick(() => centerCurrentSentence(false));
+      }
+    }
+    if (hasSentences) {
       isInitialLoading.value = false;
       return;
-    }
-    // 如果无法应用保存的状态，则加载新章节
-    if (currentBook.value && currentChapter.value) {
-      await loadChapter({ resetSentences: true });
     }
   } finally {
     isInitialLoading.value = false;
