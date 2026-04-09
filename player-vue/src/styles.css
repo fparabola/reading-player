@@ -144,6 +144,7 @@ button { border: 0; color: inherit; background: none; }
   font-size: var(--player-english-size, 16px);
   line-height: 1.95;
   color: rgba(244, 246, 255, 0.8);
+  text-align: left;
 }
 
 
