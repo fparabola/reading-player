@@ -919,6 +919,8 @@ async function analyzeSentence() {
       // 直接显示缓冲区内容，像player.html那样
       if (buffer.trim().length > 0) {
         analyzeResult.value = { raw: buffer };
+        // 强制Vue立即更新视图
+        await nextTick();
       }
     }
   } catch (error) {
