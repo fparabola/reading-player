@@ -918,9 +918,10 @@ async function analyzeSentence() {
       const chunk = decoder.decode(value, { stream: true });
       buffer += chunk;
       
-      // 直接显示缓冲区内容，像player.html那样
+      // 直接显示缓冲区内容，像 player.html 那样
+      // 每次创建新对象来强制触发 Vue 响应式更新
       if (buffer.trim().length > 0) {
-        analyzeResult.value = { raw: buffer };
+        analyzeResult.value = { raw: buffer, timestamp: Date.now() };
       }
     }
   } catch (error) {
