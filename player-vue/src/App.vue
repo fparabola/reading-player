@@ -41,23 +41,20 @@
           <div class="mode-badge">{{ statusText }}</div>
           <div class="sentence-counter">{{ currentSentenceIndex + 1 }} / {{ safeSentenceCount }}</div>
 
-          <div class="sentence-stage lyrics-stage">
+          <div class="sentence-stage content-stage">
             <template v-if="hasSentence">
-              <div ref="lyricsViewportRef" class="lyrics-viewport" @scroll.passive="onLyricsScroll">
-                <div class="lyrics-spacer" :style="{ height: `${topSpacerHeight}px` }"></div>
-                <button
-                  v-for="item in visibleSentences"
-                  :key="item.index"
-                  :ref="item.index === currentSentenceIndex ? setCurrentSentenceRef : null"
-                  type="button"
-                  class="lyrics-line"
-                  :class="[lyricsLineClass(item.index), { reading: readingMode }]"
-                  :data-tail="item.index === visibleTailIndex ? 'true' : null"
-                  @click="readingMode ? null : jumpToSentence(item.index)"
-                >
-                  {{ item.sentence.english }}
-                </button>
-                <div class="lyrics-spacer" :style="{ height: `${bottomSpacerHeight}px` }"></div>
+              <div ref="contentViewportRef" class="content-viewport" @scroll.passive="onContentScroll">
+                <div class="content-text">
+                  <span
+                    v-for="(item, index) in chapterSentences"
+                    :key="index"
+                    :ref="index === currentSentenceIndex ? setCurrentSentenceRef : null"
+                    class="content-sentence"
+                    :class="sentenceClass(index)"
+                    @click="jumpToSentence(index)"
+                    v-html="item.english.replace(/\n/g, '<br/>')"
+                  ></span>
+                </div>
               </div>
             </template>
             <template v-else>
@@ -87,19 +84,17 @@
             </div>
 
             <div class="transport-buttons">
-              <button class="transport-button" type="button" @click="goToStart" :disabled="!hasSentence || readingMode">|◀</button>
-              <button class="transport-button" type="button" @click="previousPage" :disabled="!canGoPrev || readingMode">◀</button>
-              <button class="transport-button primary" type="button" @click="togglePlayback" :disabled="!hasSentence || readingMode">
+              <button class="transport-button" type="button" @click="goToStart" :disabled="!hasSentence">|◀</button>
+              <button class="transport-button" type="button" @click="previousPage" :disabled="!canGoPrev">◀</button>
+              <button class="transport-button primary" type="button" @click="togglePlayback" :disabled="!hasSentence">
                 {{ isPlaying ? "❚❚" : "▶" }}
               </button>
-              <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence || readingMode">▶</button>
-              <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence || readingMode">▶|</button>
+              <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence">▶</button>
+              <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence">▶|</button>
               <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
             </div>
 
-            <button class="mode-toggle-button" type="button" @click="readingMode = !readingMode" :class="{ active: readingMode }">
-              {{ readingMode ? "阅读模式" : "朗读模式" }}
-            </button>
+
           </div>
 
           <div class="timeline">
@@ -243,19 +238,17 @@ const activeTab = ref("解析");
 const tabs = ["解析", "词汇", "语法", "笔记"];
 const autoPlayNext = ref(true);
 const fontScaleLevel = ref("md");
-const readingMode = ref(false);
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
 const playbackRate = ref(1.0);
 const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
-const LYRICS_SCROLL_EDGE_THRESHOLD = 48;
-const LYRICS_OVERSCAN = 4;
+const CONTENT_SCROLL_EDGE_THRESHOLD = 48;
 
 const audioRef = ref(null);
 const rateMenuRef = ref(null);
-const lyricsViewportRef = ref(null);
-const lyricsScrollTop = ref(0);
-const lyricsViewportHeight = ref(360);
+const contentViewportRef = ref(null);
+const contentScrollTop = ref(0);
+const contentViewportHeight = ref(360);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
 
@@ -296,26 +289,7 @@ const fontScaleStyle = computed(() => FONT_SCALE_MAP[fontScaleLevel.value] || FO
 const numericPlaybackRate = computed(() => clampPlaybackRate(playbackRate.value));
 const formattedPlaybackRate = computed(() => formatPlaybackRateLabel(numericPlaybackRate.value));
 const rateMenuOptions = computed(() => [...rateOptions].sort((a, b) => b - a));
-const virtualWindowRadius = 6;
-const estimatedSentenceHeight = computed(() => {
-  const map = { sm: 64, md: 78, lg: 92 };
-  return map[fontScaleLevel.value] || map.md;
-});
-const visibleCount = computed(() => Math.ceil(lyricsViewportHeight.value / estimatedSentenceHeight.value) + (LYRICS_OVERSCAN * 2));
-const visibleStart = computed(() => {
-  const rawStart = Math.floor(lyricsScrollTop.value / estimatedSentenceHeight.value) - LYRICS_OVERSCAN;
-  return Math.max(0, rawStart);
-});
-const visibleEnd = computed(() => Math.min(chapterSentences.value.length, visibleStart.value + visibleCount.value));
-const visibleTailIndex = computed(() => Math.max(visibleStart.value, visibleEnd.value - 1));
-const visibleSentences = computed(() =>
-  chapterSentences.value.slice(visibleStart.value, visibleEnd.value).map((sentence, offset) => ({
-    sentence,
-    index: visibleStart.value + offset
-  }))
-);
-const topSpacerHeight = computed(() => visibleStart.value * estimatedSentenceHeight.value);
-const bottomSpacerHeight = computed(() => Math.max(0, chapterSentences.value.length - visibleEnd.value) * estimatedSentenceHeight.value);
+// 移除虚拟滚动相关计算属性，直接显示所有句子
 const vocabularyItems = computed(() =>
   (currentSentence.value.vocabulary || []).map((item) => ({
     ...item,
@@ -336,29 +310,26 @@ watch(currentSentenceIndex, (value) => {
   centerCurrentSentence(true);
 });
 
-watch([visibleEnd, () => chapterSentences.value.length], () => {
-  nextTick(() => maybeLoadMoreFromViewport());
-});
+// 移除虚拟滚动相关的 watch 监听器
 
 watch(
-  [
-    currentBook,
-    currentChapter,
-    currentSentenceIndex,
-    currentPosition,
-    chapterFinished,
-    playbackRate,
-    ttsEnabled,
-    autoPlayNext,
-    fontScaleLevel,
-    readingMode,
-    () => chapterSentences.value
-  ],
-  () => {
-    persistReadingState();
-  },
-  { deep: true }
-);
+    [
+      currentBook,
+      currentChapter,
+      currentSentenceIndex,
+      currentPosition,
+      chapterFinished,
+      playbackRate,
+      ttsEnabled,
+      autoPlayNext,
+      fontScaleLevel,
+      () => chapterSentences.value
+    ],
+    () => {
+      persistReadingState();
+    },
+    { deep: true }
+  );
 
 watch(playbackRate, async () => {
   playbackRate.value = clampPlaybackRate(playbackRate.value);
@@ -376,7 +347,7 @@ watch(fontScaleLevel, () => {
 
 onMounted(async () => {
   window.addEventListener("pointerdown", onWindowPointerDown);
-  window.addEventListener("resize", syncLyricsViewportMetrics);
+  window.addEventListener("resize", syncContentViewportMetrics);
   try {
     await initializePlayer();
   } catch (error) {
@@ -386,7 +357,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener("pointerdown", onWindowPointerDown);
-  window.removeEventListener("resize", syncLyricsViewportMetrics);
+  window.removeEventListener("resize", syncContentViewportMetrics);
   stopPlayback();
 });
 
@@ -468,7 +439,7 @@ async function loadChapter({ resetSentences }) {
   chapterFinished.value = false;
   currentSentenceIndex.value = 0;
   progressValue.value = 0;
-  lyricsScrollTop.value = 0;
+  contentScrollTop.value = 0;
   if (resetSentences) chapterSentences.value = [];
   await loadMoreContent(true);
 }
@@ -518,7 +489,7 @@ async function splitIntoCards(text) {
 }
 
 function sentenceToCard(sentence) {
-  const plain = sentence.replace(/\s+/g, " ").trim();
+  const plain = sentence.trim(); // 保留换行符
   const words = plain.replace(/[^\w\s']/g, "").split(/\s+/).filter(Boolean);
   const keyword = (words.find((word) => word.length >= 5) || words[0] || "word").replace(/[^a-zA-Z']/g, "") || "word";
   const preview = words.slice(0, 4).join(" ");
@@ -792,72 +763,55 @@ function setCurrentSentenceRef(el) {
 }
 
 function centerCurrentSentence(smooth = true) {
-  const viewport = lyricsViewportRef.value;
+  const viewport = contentViewportRef.value;
   if (!viewport) return;
 
-  // First, ensure the current sentence is rendered in the virtual list
-  // by setting scroll position to bring it into view
-  const viewportHeight = viewport.clientHeight;
-  const targetScrollTop = currentSentenceIndex.value * estimatedSentenceHeight.value - viewportHeight / 2;
-
-  // Clamp to valid range
-  const maxScroll = Math.max(0, viewport.scrollHeight - viewportHeight);
-  const clampedScrollTop = Math.max(0, Math.min(targetScrollTop, maxScroll));
-
-  // Set both state and DOM (will use smooth scroll from CSS)
-  lyricsScrollTop.value = clampedScrollTop;
-  viewport.scrollTo({ top: clampedScrollTop, behavior: smooth ? 'smooth' : 'auto' });
-
-  // After rendering, fine-tune using actual element position if available
-  // Use 'auto' behavior to avoid interrupting the smooth scroll
-  nextTick(() => {
-    if (currentSentenceEl) {
-      const elTop = currentSentenceEl.offsetTop;
-      const elHeight = currentSentenceEl.offsetHeight;
-      const centerOffset = (viewportHeight - elHeight) / 2;
-      const fineTunedTop = elTop - centerOffset;
-
-      lyricsScrollTop.value = Math.max(0, Math.min(fineTunedTop, maxScroll));
-      viewport.scrollTo({ top: Math.max(0, Math.min(fineTunedTop, maxScroll)), behavior: 'auto' });
-    }
-    syncLyricsViewportMetrics();
-  });
+  // Use scrollIntoView for reliable centering, especially for long sentences
+  if (currentSentenceEl) {
+    currentSentenceEl.scrollIntoView({
+      behavior: smooth ? 'smooth' : 'auto',
+      block: 'center',
+      inline: 'center'
+    });
+    
+    // Update the scroll state to match the actual scroll position
+    contentScrollTop.value = viewport.scrollTop;
+  }
+  syncContentViewportMetrics();
 }
 
 function maybeLoadMoreFromViewport() {
-  if (isLoadingMore.value || chapterFinished.value) return;
-  if (visibleEnd.value < chapterSentences.value.length) return;
-  const viewport = lyricsViewportRef.value;
+  const viewport = contentViewportRef.value;
   if (!viewport) return;
   const remaining = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
-  if (remaining <= LYRICS_SCROLL_EDGE_THRESHOLD) {
+  if (remaining <= CONTENT_SCROLL_EDGE_THRESHOLD) {
     loadMoreContent();
   }
 }
 
-function onLyricsScroll(event) {
+function onContentScroll(event) {
   const viewport = event.target;
   if (!viewport) return;
-  lyricsScrollTop.value = viewport.scrollTop;
-  lyricsViewportHeight.value = viewport.clientHeight || lyricsViewportHeight.value;
+  contentScrollTop.value = viewport.scrollTop;
+  contentViewportHeight.value = viewport.clientHeight || contentViewportHeight.value;
   maybeLoadMoreFromViewport();
 }
 
-function syncLyricsViewportMetrics() {
-  const viewport = lyricsViewportRef.value;
+function syncContentViewportMetrics() {
+  const viewport = contentViewportRef.value;
   if (!viewport) return;
-  lyricsViewportHeight.value = viewport.clientHeight || lyricsViewportHeight.value;
-  lyricsScrollTop.value = viewport.scrollTop || 0;
+  contentViewportHeight.value = viewport.clientHeight || contentViewportHeight.value;
+  contentScrollTop.value = viewport.scrollTop || 0;
 }
 
-function lyricsLineClass(index) {
+function sentenceClass(index) {
   const distance = Math.abs(index - currentSentenceIndex.value);
   return {
-    current: !readingMode.value && distance === 0,
-    tier1: !readingMode.value && distance === 1,
-    tier2: !readingMode.value && distance === 2,
-    tier3: !readingMode.value && distance === 3,
-    tier4: !readingMode.value && distance >= 4
+    current: distance === 0,
+    tier1: distance === 1,
+    tier2: distance === 2,
+    tier3: distance === 3,
+    tier4: distance >= 4
   };
 }
 
@@ -914,7 +868,6 @@ function applySavedReadingState(savedState) {
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
-  readingMode.value = typeof savedState.readingMode === "boolean" ? savedState.readingMode : readingMode.value;
   isRestoringState = false;
   return true;
 }
@@ -931,8 +884,7 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,
-    fontScaleLevel: fontScaleLevel.value,
-    readingMode: readingMode.value
+    fontScaleLevel: fontScaleLevel.value
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
