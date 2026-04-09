@@ -769,10 +769,8 @@ async def analyze_text_stream(request: AnalyzeRequest):
     }
 
     async def stream_generator():
-        full_text = []
         buffer = b""
         try:
-            log_line("stream request start")
             async with httpx.AsyncClient(timeout=60) as client:
                 async with client.stream(
                     "POST",
@@ -781,8 +779,6 @@ async def analyze_text_stream(request: AnalyzeRequest):
                     json=payload
                 ) as resp:
                     if resp.status_code != 200:
-                        error_text = await resp.aread()
-                        log_line(f"LLM status={resp.status_code} body={error_text}")
                         return
                     async for chunk in resp.aiter_bytes():
                         buffer += chunk
@@ -797,18 +793,12 @@ async def analyze_text_stream(request: AnalyzeRequest):
                             try:
                                 chunk_data = json.loads(data)
                                 delta = chunk_data.get("choices", [{}])[0].get("delta", {}).get("content")
-                                if not delta:
-                                    continue
-                                full_text.append(delta)
-                                yield delta
+                                if delta:
+                                    yield delta
                             except Exception:
                                 continue
-        except Exception as e:
-            log_line(f"LLM stream exception: {str(e)}")
-            log_line(traceback.format_exc())
-        finally:
-            if full_text:
-                log_line(f"LLM response: {''.join(full_text)}")
+        except Exception:
+            pass
 
     return StreamingResponse(stream_generator(), media_type="text/plain; charset=utf-8")
 
