@@ -105,7 +105,7 @@
               :max="Math.max(safeSentenceCount - 1, 0)"
               step="1"
               :disabled="!hasSentence"
-              @input="onSeek"
+              @change="onSeek"
             />
 
           </div>
