@@ -39,7 +39,6 @@
       <section class="workspace">
         <section class="main-stage panel" :style="fontScaleStyle">
           <div class="mode-badge">{{ statusText }}</div>
-          <div class="sentence-counter">{{ currentSentenceIndex + 1 }} / {{ safeSentenceCount }}</div>
 
           <div class="sentence-stage content-stage">
             <template v-if="hasSentence">
@@ -114,7 +113,6 @@
         </section>
 
         <aside class="settings panel">
-          <div class="note-chip">生词本 <span>{{ vocabularyCount }}</span></div>
 
           <div class="settings-group">
             <h3>朗读设置</h3>
@@ -312,7 +310,7 @@ const statusText = computed(() => {
   if (errorMessage.value) return "接口调用失败";
   if (isPlaying.value) return ttsEnabled.value ? "服务 TTS 播放中" : "计时播放中";
   if (chapterFinished.value) return "本章已加载完成";
-  return "点击句子可单句播放";
+  return "";
 });
 
 watch(currentSentenceIndex, (value) => {
