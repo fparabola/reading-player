@@ -38,8 +38,6 @@
 
       <section class="workspace">
         <section class="main-stage panel" :style="fontScaleStyle">
-          <div class="mode-badge">{{ statusText }}</div>
-
           <div class="sentence-stage content-stage">
             <template v-if="hasSentence">
               <div ref="contentViewportRef" class="content-viewport" @scroll.passive="onContentScroll">
