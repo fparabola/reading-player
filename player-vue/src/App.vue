@@ -137,13 +137,6 @@
 
           <div class="settings-group">
             <h3>外观</h3>
-            <div class="theme-row">
-              <span>主题</span>
-              <div class="theme-toggle">
-                <button type="button">☼</button>
-                <button type="button" class="active">☾</button>
-              </div>
-            </div>
             <div class="font-row">
               <span>字体大小</span>
               <div class="font-scale">
