@@ -139,6 +139,14 @@
           </div>
 
           <div class="settings-group">
+            <h3>解析设置</h3>
+            <div class="toggle-row">
+              <span>自动解析</span>
+              <button class="inline-switch" :class="{ active: autoAnalyze }" type="button" @click="toggleAutoAnalyze"></button>
+            </div>
+          </div>
+
+          <div class="settings-group">
             <h3>外观</h3>
             <div class="theme-row">
               <span>主题</span>
@@ -248,6 +256,7 @@ const errorMessage = ref("");
 const activeTab = ref("解析");
 const tabs = ["解析", "词汇", "语法", "笔记"];
 const autoPlayNext = ref(true);
+const autoAnalyze = ref(false);
 const fontScaleLevel = ref("md");
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
@@ -262,6 +271,8 @@ const contentScrollTop = ref(0);
 const contentViewportHeight = ref(360);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
+const analyzeResult = ref(null);
+const isAnalyzing = ref(false);
 
 let advanceTimer = null;
 let currentAudioUrl = null;
@@ -335,6 +346,7 @@ watch(
       playbackRate,
       ttsEnabled,
       autoPlayNext,
+      autoAnalyze,
       fontScaleLevel,
       () => chapterSentences.value
     ],
@@ -356,6 +368,12 @@ watch(playbackRate, async () => {
 
 watch(fontScaleLevel, () => {
   nextTick(() => centerCurrentSentence(true));
+});
+
+watch(currentSentenceIndex, () => {
+  if (autoAnalyze.value && hasSentence.value) {
+    analyzeSentence();
+  }
 });
 
 onMounted(async () => {
@@ -873,6 +891,49 @@ function toggleTts() {
   if (isPlaying.value) replayFromCurrent();
 }
 
+function toggleAutoAnalyze() {
+  autoAnalyze.value = !autoAnalyze.value;
+  if (autoAnalyze.value && hasSentence.value) {
+    analyzeSentence();
+  }
+}
+
+async function analyzeSentence() {
+  if (!hasSentence.value || isAnalyzing.value) return;
+  isAnalyzing.value = true;
+  analyzeResult.value = { raw: "" };
+
+  try {
+    const text = currentSentence.value.english;
+    const response = await fetch(buildApiUrl("/analyze_stream"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    if (!response.ok) throw new Error("解析服务调用失败");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let fullText = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      fullText += decoder.decode(value, { stream: true });
+      parseAnalyzeResult(fullText);
+    }
+  } catch (error) {
+    handleError(error);
+    analyzeResult.value = { error: error.message };
+  } finally {
+    isAnalyzing.value = false;
+  }
+}
+
+function parseAnalyzeResult(text) {
+  analyzeResult.value = { raw: text };
+}
+
 function toggleWord(word) {
   if (!word) return;
   if (savedWords.has(word)) savedWords.delete(word);
@@ -934,6 +995,7 @@ function applySavedReadingState(savedState) {
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
+  autoAnalyze.value = typeof savedState.autoAnalyze === "boolean" ? savedState.autoAnalyze : autoAnalyze.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   contentScrollTop.value = Number(savedState.contentScrollTop || 0);
   isRestoringState = false;
@@ -963,6 +1025,7 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,
+    autoAnalyze: autoAnalyze.value,
     fontScaleLevel: fontScaleLevel.value,
     contentScrollTop: contentScrollTop.value
   };
