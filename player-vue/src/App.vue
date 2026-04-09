@@ -908,6 +908,7 @@ async function analyzeSentence() {
     const reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8');
     let buffer = "";
+    let chunkCount = 0;
 
     while (true) {
       const { done, value } = await reader.read();
@@ -916,6 +917,10 @@ async function analyzeSentence() {
       // 解码新数据并添加到缓冲区
       const chunk = decoder.decode(value, { stream: true });
       buffer += chunk;
+      chunkCount++;
+      
+      // 调试日志：确认实时接收数据
+      console.log(`[analyze] chunk ${chunkCount}:`, chunk, '| buffer:', buffer);
       
       // 直接显示缓冲区内容
       if (buffer.trim().length > 0) {
