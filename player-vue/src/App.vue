@@ -38,6 +38,9 @@
 
       <section class="workspace">
         <section class="main-stage panel" :style="fontScaleStyle">
+          <div class="mode-badge">{{ statusText }}</div>
+          <div class="sentence-counter">{{ currentSentenceIndex + 1 }} / {{ safeSentenceCount }}</div>
+
           <div class="sentence-stage content-stage">
             <template v-if="hasSentence">
               <div ref="contentViewportRef" class="content-viewport" @scroll.passive="onContentScroll">
@@ -95,14 +98,14 @@
 
           <div class="timeline">
             <input
-              v-model.number="progressValue"
+              v-model="progressValue"
               class="timeline-range"
               type="range"
               min="0"
               :max="Math.max(safeSentenceCount - 1, 0)"
               step="1"
               :disabled="!hasSentence"
-              @change="onSeek"
+              @input="onSeek"
             />
 
           </div>
@@ -115,11 +118,6 @@
 
           <div class="settings-group">
             <h3>朗读设置</h3>
-            <div class="toggle-row">
-              <span>使用服务 TTS</span>
-              <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
-            </div>
-            <div style="margin-top: 16px;"></div>
             <label class="setting-label">语速（{{ formattedPlaybackRate }}x）</label>
             <input v-model.number="playbackRate" class="speed-slider" type="range" min="0.5" max="2" step="0.25" />
             <div class="slider-ticks" aria-hidden="true">
@@ -129,18 +127,26 @@
               </span>
             </div>
             <div class="slider-legend"><span>慢</span><span>正常</span><span>快</span></div>
-          </div>
 
-          <div class="settings-group">
-            <h3>解析设置</h3>
             <div class="toggle-row">
-              <span>自动解析</span>
-              <button class="inline-switch" :class="{ active: autoAnalyze }" type="button" @click="toggleAutoAnalyze"></button>
+              <span>自动朗读下一句</span>
+              <button class="inline-switch" :class="{ active: autoPlayNext }" type="button" @click="autoPlayNext = !autoPlayNext"></button>
+            </div>
+            <div class="toggle-row">
+              <span>使用服务 TTS</span>
+              <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
             </div>
           </div>
 
           <div class="settings-group">
             <h3>外观</h3>
+            <div class="theme-row">
+              <span>主题</span>
+              <div class="theme-toggle">
+                <button type="button">☼</button>
+                <button type="button" class="active">☾</button>
+              </div>
+            </div>
             <div class="font-row">
               <span>字体大小</span>
               <div class="font-scale">
@@ -153,6 +159,13 @@
         </aside>
       </section>
 
+      <section class="insight-tabs panel">
+        <button v-for="tab in tabs" :key="tab" type="button" class="tab-button" :class="{ active: activeTab === tab }" @click="activeTab = tab">
+          {{ tab }}
+          <span v-if="tab === '词汇'">{{ vocabularyCount }}</span>
+        </button>
+      </section>
+
       <section class="insight-grid">
         <article class="info-card panel analyze-card" v-if="autoAnalyze">
           <div class="card-title-row">
@@ -163,7 +176,7 @@
             <div v-if="analyzeResult.error" class="analyze-error">
               {{ analyzeResult.error }}
             </div>
-            <pre v-else class="analyze-markdown">{{ analyzeResult.raw }}</pre>
+            <div v-else class="analyze-markdown" v-html="marked.parse(analyzeResult.raw || '')"></div>
           </div>
           <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
         </article>
@@ -205,6 +218,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { marked } from "marked";
 
 const DEFAULT_MIN_SIZE = 500;
 const DEFAULT_BOOK = "哈利波特1-7英文原版";
@@ -234,7 +248,6 @@ const errorMessage = ref("");
 const activeTab = ref("解析");
 const tabs = ["解析", "词汇", "语法", "笔记"];
 const autoPlayNext = ref(true);
-const autoAnalyze = ref(false);
 const fontScaleLevel = ref("md");
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
@@ -249,8 +262,6 @@ const contentScrollTop = ref(0);
 const contentViewportHeight = ref(360);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
-const analyzeResult = ref(null);
-const isAnalyzing = ref(false);
 
 let advanceTimer = null;
 let currentAudioUrl = null;
@@ -324,7 +335,6 @@ watch(
       playbackRate,
       ttsEnabled,
       autoPlayNext,
-      autoAnalyze,
       fontScaleLevel,
       () => chapterSentences.value
     ],
@@ -345,15 +355,7 @@ watch(playbackRate, async () => {
 });
 
 watch(fontScaleLevel, () => {
-  // 字体大小变化后，等待更长时间确保DOM完全更新后再滚动
-  setTimeout(() => centerCurrentSentence(true), 100);
-});
-
-watch(currentSentenceIndex, () => {
-  // 当句子切换时，如果开启了自动解析，自动调用analyze接口
-  if (autoAnalyze.value && hasSentence.value) {
-    analyzeSentence();
-  }
+  nextTick(() => centerCurrentSentence(true));
 });
 
 onMounted(async () => {
@@ -374,47 +376,27 @@ onBeforeUnmount(() => {
 
 async function initializePlayer() {
   isInitialLoading.value = true;
-  // 在整个初始化过程中禁止保存状态，防止覆盖原进度
-  isRestoringState = true;
   try {
     const savedState = loadReadingState();
     await loadBooks();
-    // 如果有保存的书籍，优先使用保存的书籍
     if (savedState?.book && bookOptions.value.includes(savedState.book)) {
       currentBook.value = savedState.book;
     }
     if (currentBook.value) {
       await loadChapters(currentBook.value);
     }
-    // 如果有保存的章节，优先使用保存的章节
-    if (savedState?.chapter) {
+    if (savedState?.chapter && chapterOptions.value.includes(savedState.chapter)) {
       currentChapter.value = savedState.chapter;
     }
-    // 恢复全局设置（不依赖于书籍和章节）
-    if (savedState?.fontScaleLevel) {
-      fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
-    }
-    // 尝试应用保存的状态
-    const hasSentences = applySavedReadingState(savedState);
-    if (!hasSentences && currentBook.value && currentChapter.value) {
-      // 如果没有句子数据，先加载章节内容
-      await loadChapter({ resetSentences: true });
-      // 加载完成后恢复进度（如果有保存的进度）
-      if (savedState?.currentSentenceIndex !== undefined && savedState.currentSentenceIndex > 0) {
-        const restoredIndex = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
-        currentSentenceIndex.value = restoredIndex;
-        progressValue.value = restoredIndex;
-        nextTick(() => centerCurrentSentence(false));
-      }
-    }
-    if (hasSentences) {
+    if (applySavedReadingState(savedState)) {
       isInitialLoading.value = false;
       return;
     }
+    if (currentBook.value && currentChapter.value) {
+      await loadChapter({ resetSentences: true });
+    }
   } finally {
     isInitialLoading.value = false;
-    // 初始化完成后允许保存状态
-    isRestoringState = false;
   }
 }
 
@@ -702,8 +684,7 @@ async function requestTtsAudio(text, token) {
 
     const audio = audioRef.value;
     audio.src = currentAudioUrl;
-    // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
-    audio.playbackRate = 1.0;
+    audio.playbackRate = playbackRate.value;
     await audio.play();
     return;
   }
@@ -718,8 +699,7 @@ async function requestTtsAudio(text, token) {
   currentAudioUrl = URL.createObjectURL(blob);
   const audio = audioRef.value;
   audio.src = currentAudioUrl;
-  // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
-  audio.playbackRate = 1.0;
+  audio.playbackRate = playbackRate.value;
   await audio.play();
 }
 
@@ -893,51 +873,6 @@ function toggleTts() {
   if (isPlaying.value) replayFromCurrent();
 }
 
-function toggleAutoAnalyze() {
-  autoAnalyze.value = !autoAnalyze.value;
-  if (autoAnalyze.value && hasSentence.value) {
-    analyzeSentence();
-  }
-}
-
-async function analyzeSentence() {
-  if (!hasSentence.value || isAnalyzing.value) return;
-  isAnalyzing.value = true;
-  analyzeResult.value = { raw: "" };
-
-  try {
-    const text = currentSentence.value.english;
-    const response = await fetch(buildApiUrl("/analyze_stream"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    });
-    if (!response.ok) throw new Error("解析服务调用失败");
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      fullText += decoder.decode(value, { stream: true });
-      // 实时更新解析结果
-      parseAnalyzeResult(fullText);
-    }
-  } catch (error) {
-    handleError(error);
-    analyzeResult.value = { error: error.message };
-  } finally {
-    isAnalyzing.value = false;
-  }
-}
-
-function parseAnalyzeResult(text) {
-  // 直接保存原始Markdown文本
-  analyzeResult.value = { raw: text };
-}
-
 function toggleWord(word) {
   if (!word) return;
   if (savedWords.has(word)) savedWords.delete(word);
@@ -992,23 +927,19 @@ function applySavedReadingState(savedState) {
   console.log('chapterSentences.length:', chapterSentences.value.length);
   console.log('safeSentenceCount:', Math.max(chapterSentences.value.length, 1));
   
-  // 先设置currentSentenceIndex
+  // 先设置progressValue，再设置currentSentenceIndex，确保进度条正确显示
+  progressValue.value = restoredIndex;
   currentSentenceIndex.value = restoredIndex;
   
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
-  autoAnalyze.value = typeof savedState.autoAnalyze === "boolean" ? savedState.autoAnalyze : autoAnalyze.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   contentScrollTop.value = Number(savedState.contentScrollTop || 0);
+  isRestoringState = false;
   
-  // 等待DOM更新完成后再设置progressValue和滚动
-  // 这样确保timeline-range的max属性已经更新，progressValue不会被浏览器截断
+  // 等待DOM更新完成后再滚动到保存的位置
   nextTick(() => {
-    console.log('Setting progressValue in nextTick:', restoredIndex);
-    progressValue.value = restoredIndex;
-    // 在设置progressValue之后再关闭恢复状态标志
-    isRestoringState = false;
     const viewport = contentViewportRef.value;
     if (viewport) {
       viewport.scrollTop = contentScrollTop.value;
@@ -1032,7 +963,6 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,
-    autoAnalyze: autoAnalyze.value,
     fontScaleLevel: fontScaleLevel.value,
     contentScrollTop: contentScrollTop.value
   };
