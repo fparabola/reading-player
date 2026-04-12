@@ -107,6 +107,21 @@
 
           <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
         </section>
+
+        <section class="side-panel panel">
+          <article class="info-card panel analyze-card" v-if="autoAnalyze || analyzeResult">
+            <div class="loading-container" v-if="isAnalyzing">
+              <div class="loading-spinner"></div>
+            </div>
+            <div v-if="analyzeResult" class="analyze-content">
+              <div v-if="analyzeResult.error" class="analyze-error">
+                {{ analyzeResult.error }}
+              </div>
+              <div v-else class="analyze-markdown" v-html="renderAnalyzeContent(analyzeResult.raw)"></div>
+            </div>
+            <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
+          </article>
+        </section>
       </section>
 
       <!-- 侧边栏 -->
@@ -208,52 +223,7 @@
         </div>
       </div>
 
-      <section class="insight-grid">
-        <article class="info-card panel analyze-card" v-if="autoAnalyze || analyzeResult">
-          <div class="card-title-row">
-            <h3>解析</h3>
-            <span v-if="isAnalyzing" class="analyzing-indicator">解析中...</span>
-          </div>
-          <div v-if="analyzeResult" class="analyze-content">
-            <div v-if="analyzeResult.error" class="analyze-error">
-              {{ analyzeResult.error }}
-            </div>
-            <div v-else class="analyze-markdown" v-html="renderAnalyzeContent(analyzeResult.raw)"></div>
-          </div>
-          <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
-        </article>
 
-        <article class="info-card panel">
-          <h3>翻译</h3>
-          <p>{{ currentSentence.translation }}</p>
-          <p class="muted">当前先用本地占位翻译承接真实文本播放，后续可继续接入 `/analyze` 或翻译服务。</p>
-        </article>
-
-        <article class="info-card panel">
-          <h3>语法解析</h3>
-          <p>{{ currentSentence.grammar }}</p>
-          <ul class="bullet-list">
-            <li v-for="point in currentSentence.grammarPoints" :key="point">{{ point }}</li>
-          </ul>
-        </article>
-
-        <article class="info-card panel vocab-card">
-          <div class="card-title-row">
-            <h3>生词</h3>
-            <button class="export-button" type="button">导出</button>
-          </div>
-          <div class="vocab-list">
-            <div v-for="item in vocabularyItems" :key="item.word" class="vocab-item">
-              <div>
-                <strong>{{ item.word }}</strong>
-                <span>{{ item.pos }}</span>
-              </div>
-              <p>{{ item.meaning }}</p>
-              <button type="button" class="star" @click="toggleWord(item.word)">{{ item.saved ? "★" : "☆" }}</button>
-            </div>
-          </div>
-        </article>
-      </section>
     </main>
   </div>
 </template>
