@@ -343,14 +343,22 @@ const isFullscreen = ref(false);
 function toggleFullscreen() {
   const element = document.documentElement;
   
-  if (!document.fullscreenElement) {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
     // 进入全屏
     if (element.requestFullscreen) {
-      element.requestFullscreen();
+      element.requestFullscreen().catch(err => {
+        console.error('进入全屏失败:', err);
+      });
     } else if (element.webkitRequestFullscreen) {
-      element.webkitRequestFullscreen();
+      element.webkitRequestFullscreen().catch(err => {
+        console.error('进入全屏失败:', err);
+      });
     } else if (element.msRequestFullscreen) {
-      element.msRequestFullscreen();
+      element.msRequestFullscreen().catch(err => {
+        console.error('进入全屏失败:', err);
+      });
+    } else {
+      console.error('您的浏览器不支持全屏模式');
     }
   } else {
     // 退出全屏
@@ -366,7 +374,14 @@ function toggleFullscreen() {
 
 // 监听全屏状态变化
 function handleFullscreenChange() {
-  isFullscreen.value = !!document.fullscreenElement;
+  isFullscreen.value = !!document.fullscreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement;
+  
+  // 强制更新样式
+  if (isFullscreen.value) {
+    document.body.classList.add('fullscreen-mode');
+  } else {
+    document.body.classList.remove('fullscreen-mode');
+  }
 }
 
 // 监听全屏错误

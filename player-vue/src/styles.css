@@ -703,7 +703,8 @@ body.sidebar-open {
 /* 全屏模式 */
 body:fullscreen .app-shell,
 body:-webkit-full-screen .app-shell,
-body:-ms-fullscreen .app-shell {
+body:-ms-fullscreen .app-shell,
+body.fullscreen-mode .app-shell {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
@@ -712,19 +713,22 @@ body:-ms-fullscreen .app-shell {
   align-items: center;
   padding: 0;
   margin: 0;
+  background: rgba(9, 11, 23, 0.98);
 }
 
 /* 全屏模式下隐藏顶部导航栏 */
 body:fullscreen .top-bar,
 body:-webkit-full-screen .top-bar,
-body:-ms-fullscreen .top-bar {
+body:-ms-fullscreen .top-bar,
+body.fullscreen-mode .top-bar {
   display: none;
 }
 
 /* 全屏模式下播放器占满页面 */
 body:fullscreen .main-stage,
 body:-webkit-full-screen .main-stage,
-body:-ms-fullscreen .main-stage {
+body:-ms-fullscreen .main-stage,
+body.fullscreen-mode .main-stage {
   min-height: 100vh;
   max-height: 100vh;
   height: 100vh;
@@ -739,7 +743,8 @@ body:-ms-fullscreen .main-stage {
 /* 全屏模式下内容区域自适应 */
 body:fullscreen .content-viewport,
 body:-webkit-full-screen .content-viewport,
-body:-ms-fullscreen .content-viewport {
+body:-ms-fullscreen .content-viewport,
+body.fullscreen-mode .content-viewport {
   height: 70vh;
   min-height: 400px;
   max-height: 70vh;
@@ -748,7 +753,8 @@ body:-ms-fullscreen .content-viewport {
 /* 全屏模式下工作区布局 */
 body:fullscreen .workspace,
 body:-webkit-full-screen .workspace,
-body:-ms-fullscreen .workspace {
+body:-ms-fullscreen .workspace,
+body.fullscreen-mode .workspace {
   height: 100%;
   grid-template-rows: 1fr;
   grid-template-columns: 1fr;
@@ -758,27 +764,16 @@ body:-ms-fullscreen .workspace {
 /* 全屏模式下隐藏右侧面板 */
 body:fullscreen .side-panel,
 body:-webkit-full-screen .side-panel,
-body:-ms-fullscreen .side-panel {
+body:-ms-fullscreen .side-panel,
+body.fullscreen-mode .side-panel {
   display: none !important;
-}
-
-/* 全屏模式下主播放器区域占满宽度 */
-body:fullscreen .main-stage,
-body:-webkit-full-screen .main-stage,
-body:-ms-fullscreen .main-stage {
-  grid-column: 1 / -1;
-  width: 100%;
-  height: 100vh;
-  margin: 0;
-  padding: 24px;
-  border-radius: 0;
-  background: rgba(9, 11, 23, 0.98);
 }
 
 /* 全屏模式下侧边栏 */
 body:fullscreen .sidebar,
 body:-webkit-full-screen .sidebar,
-body:-ms-fullscreen .sidebar {
+body:-ms-fullscreen .sidebar,
+body.fullscreen-mode .sidebar {
   height: 100vh;
   right: -400px;
   z-index: 10000;
@@ -786,27 +781,31 @@ body:-ms-fullscreen .sidebar {
 
 body:fullscreen .sidebar.open,
 body:-webkit-full-screen .sidebar.open,
-body:-ms-fullscreen .sidebar.open {
+body:-ms-fullscreen .sidebar.open,
+body.fullscreen-mode .sidebar.open {
   right: 0;
 }
 
 /* 全屏模式下进度条区域 */
 body:fullscreen .timeline,
 body:-webkit-full-screen .timeline,
-body:-ms-fullscreen .timeline {
+body:-ms-fullscreen .timeline,
+body.fullscreen-mode .timeline {
   margin-top: 16px;
 }
 
 /* 确保全屏模式下所有元素都能自适应 */
 body:fullscreen .content-text,
 body:-webkit-full-screen .content-text,
-body:-ms-fullscreen .content-text {
+body:-ms-fullscreen .content-text,
+body.fullscreen-mode .content-text {
   max-width: 100%;
 }
 
 body:fullscreen .transport-buttons,
 body:-webkit-full-screen .transport-buttons,
-body:-ms-fullscreen .transport-buttons {
+body:-ms-fullscreen .transport-buttons,
+body.fullscreen-mode .transport-buttons {
   justify-content: center;
   margin: 16px 0;
 }
