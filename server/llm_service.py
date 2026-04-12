@@ -15,23 +15,6 @@ API_CONFIG = {
     "default_model": config_helper.get("api.default_model")
 }
 
-
-def build_analyze_prompt() -> str:
-    """
-    构建分析提示（作为system prompt）
-    """
-    # 使用prompt_helper获取prompt
-    prompt_template = prompt_helper.get_prompt("", "analyze_prompt")
-    # 移除文本占位符部分
-    if prompt_template:
-        # 移除"以下是文本：\n{text}"部分
-        prompt_template = prompt_template.split("以下是文本：")[0].strip()
-    return prompt_template if prompt_template else "你是英语句子解析助手，中文回答。"
-
-
-
-
-
 def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) -> AsyncGenerator[str, None]:
     """
     流式分析文本
@@ -44,7 +27,7 @@ def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) ->
     返回:
     - 流式分析结果
     """
-    system_prompt = build_analyze_prompt()
+    system_prompt = prompt_helper.get_prompt("", "analyze_prompt")
     user_prompt = text
     model_name = model or API_CONFIG["default_model"]
     
