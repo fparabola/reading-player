@@ -4,10 +4,10 @@ LLM服务
 """
 import json
 import traceback
-from pathlib import Path
 from openai import OpenAI
 from typing import Optional, AsyncGenerator
 from config_helper import config_helper
+from prompt_helper import prompt_helper
 
 # API配置
 API_CONFIG = {
@@ -21,10 +21,27 @@ def build_analyze_prompt(text: str) -> str:
     """
     构建分析提示
     """
-    # 从md文件中读取prompt
-    prompt_path = Path(__file__).parent / "prompt" / "analyze_prompt.md"
-    with open(prompt_path, 'r', encoding='utf-8') as f:
-        prompt_template = f.read()
+    # 使用prompt_helper获取prompt
+    prompt_template = prompt_helper.get_prompt("", "analyze_prompt")
+    if not prompt_template:
+        # 如果获取失败，使用默认prompt
+        prompt_template = (
+            "你是一名资深的英文导读老师，现在正在帮我进行英语精读训练。我是英语学习者。\n"
+            "请用 **Markdown** 输出，严格按下面结构回答：\n\n"
+            "## 1. 自然中文翻译\n"
+            "- 给出自然中文翻译（不要逐词直译）\n\n"
+            "## 2. 作者意图\n"
+            "- 作者这样写有什么特殊含义（如果句子有特殊意味）\n\n"
+            "## 3. 重点词汇\n"
+            "- 词性 + 核心含义 + 语境含义\n\n"
+            "## 4. 重点短语/固定搭配\n"
+            "- 列出并解释\n\n"
+            "## 5. 语法重点\n"
+            "- 总结本段语法重点\n\n"
+            "讲解要清晰，适合中级英语学习者。\n\n"
+            "以下是文本：\n"
+            "{text}"
+        )
     # 替换文本占位符
     return prompt_template.replace("{text}", text)
 
