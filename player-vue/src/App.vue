@@ -124,10 +124,27 @@
               <option value="" disabled>选择书籍</option>
               <option v-for="book in bookOptions" :key="book" :value="book">{{ book }}</option>
             </select>
-            <select v-model="currentChapter" class="chapter-select" @change="onChapterSelect" :disabled="!chapterOptions.length">
-              <option value="" disabled>选择章节</option>
-              <option v-for="chapter in chapterOptions" :key="chapter" :value="chapter">{{ chapter }}</option>
-            </select>
+            
+            <div v-if="chapterOptions.length > 0" class="chapter-list">
+              <h4>章节列表</h4>
+              <div class="chapter-items">
+                <button 
+                  v-for="chapter in chapterOptions" 
+                  :key="chapter" 
+                  class="chapter-item" 
+                  :class="{ active: currentChapter === chapter }"
+                  @click="selectChapter(chapter)"
+                >
+                  {{ chapter }}
+                </button>
+              </div>
+            </div>
+            <div v-else-if="currentBook" class="no-chapters">
+              正在加载章节...
+            </div>
+            <div v-else class="no-chapters">
+              请先选择书籍
+            </div>
           </div>
         </div>
       </div>
@@ -300,6 +317,12 @@ const sentenceRefs = ref([]);
 function closeSidebars() {
   isBookSidebarOpen.value = false;
   isSettingsSidebarOpen.value = false;
+}
+
+function selectChapter(chapter) {
+  currentChapter.value = chapter;
+  onChapterSelect();
+  isBookSidebarOpen.value = false;
 }
 
 const emptySentence = {
