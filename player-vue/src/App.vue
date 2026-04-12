@@ -71,6 +71,8 @@
               </button>
               <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence">▶</button>
               <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence">▶|</button>
+            </div>
+            <div class="transport-controls">
               <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
               <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
             </div>
