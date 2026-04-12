@@ -311,8 +311,8 @@ button { border: 0; color: inherit; background: none; }
 }
 .rotate { font-size: 16px; }
 .transport-buttons { gap: 18px; justify-content: center; margin: 8px 0; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); flex-shrink: 0; }
-.transport-collapse { display: flex; justify-content: center; padding: 8px 0; }
-.collapse-button { width: 44px; height: 44px; font-size: 18px; }
+.transport-collapse { display: flex; justify-content: center; padding: 4px 0; }
+.collapse-button { width: 36px; height: 36px; font-size: 16px; }
 .transport-button { width: 56px; height: 56px; border-radius: 50%; cursor: pointer; background: rgba(255, 255, 255, 0.04); color: #f3f5ff; font-size: 22px; }
 
 .transport-controls .transport-button { width: 44px; height: 44px; font-size: 18px; }
