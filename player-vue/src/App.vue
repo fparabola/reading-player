@@ -673,13 +673,18 @@ async function nextPage() {
   stopPlayback();
 }
 
-function previousPage() {
+async function previousPage() {
   if (!hasSentence.value) return;
+  // 重置音频播放位置，避免继续播放的逻辑影响新句子
+  audioCurrentTime.value = 0;
+  // 切换到上一句
   currentSentenceIndex.value = Math.max(currentSentenceIndex.value - 1, 0);
   nextTick(() => {
     centerCurrentSentence();
   });
-  if (isPlaying.value) replayFromCurrent();
+  // 请求新句子的TTS
+  if (isPlaying.value) await playCurrentSentence();
+  maybePreloadMore();
 }
 
 function goToStart() {
