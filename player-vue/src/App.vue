@@ -133,6 +133,7 @@
                   :key="chapter" 
                   class="chapter-item" 
                   :class="{ active: currentChapter === chapter }"
+                  :title="chapter"
                   @click="selectChapter(chapter)"
                 >
                   {{ chapter }}
