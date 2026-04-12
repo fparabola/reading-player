@@ -273,6 +273,7 @@ const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
 const isBookSidebarOpen = ref(false);
 const isSettingsSidebarOpen = ref(false);
+const audioCurrentTime = ref(0);
 
 // 控制body滚动
 function updateBodyScroll() {
@@ -754,7 +755,19 @@ async function playCurrentSentence() {
 
   if (ttsEnabled.value) {
     try {
+      // 检查是否是继续播放（有保存的播放位置）
+      const isResuming = audioCurrentTime.value > 0;
+      
       await requestTtsAudio(text, token);
+      
+      // 如果是继续播放，从保存的位置开始
+      if (isResuming) {
+        const audio = audioRef.value;
+        if (audio) {
+          audio.currentTime = audioCurrentTime.value;
+          audioCurrentTime.value = 0; // 重置保存的位置
+        }
+      }
 
       // Preload next sentence after current starts playing
       const nextIndex = currentSentenceIndex.value + 1;
@@ -776,6 +789,17 @@ async function requestTtsAudio(text, token) {
   const voice = detectLanguage(text) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
   const rate = formatTtsRate(playbackRate.value);
 
+  // 检查是否是继续播放（有保存的播放位置）
+  const isResuming = audioCurrentTime.value > 0;
+  
+  // 如果是继续播放，且音频已经加载，则直接播放
+  const audio = audioRef.value;
+  if (isResuming && audio && audio.src) {
+    if (token !== playToken || !isPlaying.value) return;
+    await audio.play();
+    return;
+  }
+
   // Check if we have preloaded audio for current sentence
   if (preloadIndex === currentSentenceIndex.value && nextAudioUrl) {
     if (token !== playToken || !isPlaying.value) return;
@@ -784,11 +808,12 @@ async function requestTtsAudio(text, token) {
     nextAudioUrl = null;  // Consume preloaded audio
     preloadIndex = -1;
 
-    const audio = audioRef.value;
-    audio.src = currentAudioUrl;
-    // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
-    audio.playbackRate = 1.0;
-    await audio.play();
+    if (audio) {
+      audio.src = currentAudioUrl;
+      // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
+      audio.playbackRate = 1.0;
+      await audio.play();
+    }
     return;
   }
 
@@ -800,11 +825,12 @@ async function requestTtsAudio(text, token) {
   if (token !== playToken || !isPlaying.value) return;
 
   currentAudioUrl = URL.createObjectURL(blob);
-  const audio = audioRef.value;
-  audio.src = currentAudioUrl;
-  // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
-  audio.playbackRate = 1.0;
-  await audio.play();
+  if (audio) {
+    audio.src = currentAudioUrl;
+    // TTS服务已经按照正确的速率生成了音频，不需要再调整playbackRate
+    audio.playbackRate = 1.0;
+    await audio.play();
+  }
 }
 
 function scheduleTextAdvance(token, autoNext = true) {
@@ -832,14 +858,10 @@ function clearAdvanceTimer() {
 function stopAudio() {
   const audio = audioRef.value;
   if (audio) {
+    audioCurrentTime.value = audio.currentTime;
     audio.pause();
-    audio.removeAttribute("src");
-    audio.load();
   }
-  if (currentAudioUrl) {
-    URL.revokeObjectURL(currentAudioUrl);
-    currentAudioUrl = null;
-  }
+  // 不要移除src属性，保留音频资源以便继续播放
 }
 
 function clearPreloadAudio() {
