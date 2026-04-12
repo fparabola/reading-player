@@ -1,5 +1,11 @@
 import requests
 import json
+import sys
+import os
+
+# 添加src目录到Python路径
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src'))
+
 from llm_service import rebuild_annotated_html
 
 # 测试文本

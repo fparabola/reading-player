@@ -16,19 +16,19 @@ echo.
 set /p choice="请选择 Please select (0-5): "
 
 if "%choice%"=="1" (
-    python service_manager.py start
+    python src\service_manager.py start
     pause
 ) else if "%choice%"=="2" (
-    python service_manager.py stop
+    python src\service_manager.py stop
     pause
 ) else if "%choice%"=="3" (
-    python service_manager.py restart
+    python src\service_manager.py restart
     pause
 ) else if "%choice%"=="4" (
-    python service_manager.py status
+    python src\service_manager.py status
     pause
 ) else if "%choice%"=="5" (
-    python service_manager.py logs
+    python src\service_manager.py logs
     pause
 ) else if "%choice%"=="0" (
     exit
