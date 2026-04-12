@@ -209,7 +209,31 @@ button { border: 0; color: inherit; background: none; }
 .transport-button.primary { width: 74px; height: 74px; background: linear-gradient(180deg, #7f8fff, #6c7bff); box-shadow: 0 16px 30px rgba(103, 118, 255, 0.32); }
 .mode-toggle-button.active { background: rgba(114, 136, 255, 0.16); color: #cad3ff; }
 
-.timeline { margin-top: 18px; padding: 0 20px; }
+.timeline {
+  margin-top: 24px;
+  padding: 0 20px;
+}
+
+.timeline-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+
+.timeline-meta-left {
+  text-align: left;
+}
+
+.timeline-meta-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: right;
+}
 .timeline-range, .speed-slider { width: 100%; appearance: none; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); outline: none; }
 .speed-slider {
   width: calc(100% - (var(--slider-edge-offset) * 2));
@@ -428,13 +452,19 @@ button { border: 0; color: inherit; background: none; }
   right: -400px;
   width: 400px;
   height: 100vh;
-  background: var(--surface);
+  background: rgba(10, 10, 20, 0.98);
   border-left: 1px solid var(--border);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
   z-index: 1001;
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* 防止滚动穿透 */
+body.sidebar-open {
+  overflow: hidden;
 }
 
 .sidebar.open {
@@ -479,6 +509,13 @@ button { border: 0; color: inherit; background: none; }
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+  background: rgba(10, 10, 20, 0.98);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sidebar-content::-webkit-scrollbar {
+  display: none;
 }
 
 .book-chapter-selector {

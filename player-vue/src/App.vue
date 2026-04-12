@@ -22,16 +22,7 @@
         </div>
       </header>
 
-      <section class="progress-strip">
-        <div class="progress-meta">
-          <span>{{ currentBook || "未选择书籍" }}</span>
-          <span>·</span>
-          <span>{{ chapterProgress }}%</span>
-          <span>·</span>
-          <span>{{ currentSentenceIndex + 1 }} / {{ safeSentenceCount }} 句</span>
-        </div>
-        <div class="progress-line"><div class="progress-line-fill" :style="{ width: `${chapterProgress}%` }"></div></div>
-      </section>
+
 
       <section class="workspace">
         <section class="main-stage panel" :style="fontScaleStyle">
@@ -102,7 +93,16 @@
               :disabled="!hasSentence"
               @input="onSeek"
             />
-
+            <div class="timeline-meta">
+              <div class="timeline-meta-left">
+                <span>{{ currentBook || "未选择书籍" }}</span>
+              </div>
+              <div class="timeline-meta-right">
+                <span>{{ chapterProgress }}%</span>
+                <span>·</span>
+                <span>{{ currentSentenceIndex + 1 }} / {{ safeSentenceCount }} 句</span>
+              </div>
+            </div>
           </div>
 
           <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
@@ -303,6 +303,24 @@ const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
 const isBookSidebarOpen = ref(false);
 const isSettingsSidebarOpen = ref(false);
+
+// 控制body滚动
+function updateBodyScroll() {
+  if (isBookSidebarOpen.value || isSettingsSidebarOpen.value) {
+    document.body.classList.add('sidebar-open');
+  } else {
+    document.body.classList.remove('sidebar-open');
+  }
+}
+
+// 监听侧边栏状态变化
+watch([isBookSidebarOpen, isSettingsSidebarOpen], updateBodyScroll);
+
+// 初始化时检查
+onMounted(() => {
+  updateBodyScroll();
+  // 其他初始化代码...
+});
 const analyzeResult = ref(null);
 const isAnalyzing = ref(false);
 
