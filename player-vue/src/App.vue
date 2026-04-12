@@ -323,6 +323,16 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(mainStageRef, {
     // 强制更新样式
     if (isFull) {
       document.body.classList.add('fullscreen-mode');
+      // 模拟鼠标移动，触发浏览器隐藏全屏提示
+      setTimeout(() => {
+        const event = new MouseEvent('mousemove', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 100,
+          clientY: 100
+        });
+        document.dispatchEvent(event);
+      }, 100);
     } else {
       document.body.classList.remove('fullscreen-mode');
     }

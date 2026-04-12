@@ -160,7 +160,11 @@ def get_resource_books() -> List[BookInfo]:
             if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt'
         ]
         for chapter_file in sorted(chapter_files, key=lambda p: chapter_sort_key(p.name)):
-            chapters.append(ChapterInfo(name=chapter_file.name))
+            # 移除文件后缀
+            chapter_name = chapter_file.name
+            if chapter_name.endswith('.txt'):
+                chapter_name = chapter_name[:-4]
+            chapters.append(ChapterInfo(name=chapter_name))
 
         if chapters:  # 只添加有章节的书籍
             books.append(BookInfo(name=book_path.name, chapters=chapters))
@@ -559,7 +563,11 @@ async def get_book_info(book_name: str):
             if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt'
         ]
         for chapter_file in sorted(chapter_files, key=lambda p: chapter_sort_key(p.name)):
-            chapters.append({"name": chapter_file.name})
+            # 移除文件后缀
+            chapter_name = chapter_file.name
+            if chapter_name.endswith('.txt'):
+                chapter_name = chapter_name[:-4]
+            chapters.append({"name": chapter_name})
 
         return {
             "book_name": book_name,
@@ -594,7 +602,11 @@ async def get_chapters(book_name: str):
             if chapter_file.is_file() and chapter_file.suffix.lower() == '.txt'
         ]
         for chapter_file in sorted(chapter_files, key=lambda p: chapter_sort_key(p.name)):
-            chapters.append({"name": chapter_file.name})
+            # 移除文件后缀
+            chapter_name = chapter_file.name
+            if chapter_name.endswith('.txt'):
+                chapter_name = chapter_name[:-4]
+            chapters.append({"name": chapter_name})
 
         return {
             "book_name": book_name,

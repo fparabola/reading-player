@@ -57,6 +57,7 @@ server/resource/
 # Server config
 server/config.ini
 server/resource/
+server/tts/
 
 # PID files
 *.pid
