@@ -12,6 +12,12 @@
 
       <section class="workspace">
         <section class="main-stage panel" :style="fontScaleStyle" ref="mainStageRef">
+          <div class="collapse-button-fixed" v-show="!isTransportCollapsed">
+            <button class="transport-button collapse-button" type="button" @click="isTransportCollapsed = true">▼</button>
+          </div>
+          <div class="collapse-button-fixed" v-show="isTransportCollapsed">
+            <button class="transport-button collapse-button" type="button" @click="isTransportCollapsed = false">▲</button>
+          </div>
 
           <div class="sentence-stage content-stage">
             <template v-if="hasSentence">
@@ -205,13 +211,6 @@
           </div>
         </div>
       </div>
-          
-          <div class="transport-collapse" v-show="isTransportCollapsed">
-            <button class="transport-button collapse-button" type="button" @click="isTransportCollapsed = false">▲</button>
-          </div>
-          <div class="transport-collapse" v-show="!isTransportCollapsed">
-            <button class="transport-button collapse-button" type="button" @click="isTransportCollapsed = true">▼</button>
-          </div>
 
         </main>
   </div>
