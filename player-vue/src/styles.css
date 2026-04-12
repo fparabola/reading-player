@@ -520,6 +520,12 @@ button { border: 0; color: inherit; background: none; }
   gap: 8px;
   max-height: 400px;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.chapter-items::-webkit-scrollbar {
+  display: none;
 }
 
 .chapter-item {
@@ -532,9 +538,14 @@ button { border: 0; color: inherit; background: none; }
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+  min-height: 44px;
 }
 
 .chapter-item:hover {
