@@ -20,7 +20,7 @@
 
 
       <section class="workspace">
-        <section class="main-stage panel" :style="fontScaleStyle">
+        <section class="main-stage panel" :style="fontScaleStyle" ref="mainStageRef">
 
           <div class="sentence-stage content-stage">
             <template v-if="hasSentence">
@@ -255,6 +255,7 @@ const errorMessage = ref("");
 const autoPlayNext = ref(true);
 const autoAnalyze = ref(false);
 const fontScaleLevel = ref("md");
+const mainStageRef = ref(null);
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
 const playbackRate = ref(1.0);
@@ -328,7 +329,7 @@ function handleKeyDown(event) {
 }
 
 // 全屏功能
-const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(document.documentElement, {
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(mainStageRef, {
   autoExit: false,
   onFullscreenChange: (isFull) => {
     // 强制更新样式
