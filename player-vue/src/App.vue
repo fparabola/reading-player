@@ -12,17 +12,14 @@
           <span class="brand-text">书籍与章节</span>
         </div>
 
-        <div class="top-center top-selects">
-          <select v-model="currentBook" class="chapter-select" @change="onBookChange">
-            <option value="" disabled>选择书籍</option>
-            <option v-for="book in bookOptions" :key="book" :value="book">{{ book }}</option>
-          </select>
-          <select v-model="currentChapter" class="chapter-select" @change="onChapterSelect" :disabled="!chapterOptions.length">
-            <option value="" disabled>选择章节</option>
-            <option v-for="chapter in chapterOptions" :key="chapter" :value="chapter">{{ chapter }}</option>
-          </select>
+        <div class="header-actions">
+          <button class="sidebar-toggle" @click="isBookSidebarOpen = !isBookSidebarOpen">
+            📚 书籍
+          </button>
+          <button class="sidebar-toggle" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen">
+            ⚙️ 设置
+          </button>
         </div>
-
       </header>
 
       <section class="progress-strip">
@@ -110,9 +107,38 @@
 
           <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
         </section>
+      </section>
 
-        <aside class="settings panel">
-
+      <!-- 侧边栏 -->
+      <div class="sidebar-overlay" v-if="isBookSidebarOpen || isSettingsSidebarOpen" @click="closeSidebars"></div>
+      
+      <!-- 书籍侧边栏 -->
+      <div class="sidebar book-sidebar" :class="{ open: isBookSidebarOpen }">
+        <div class="sidebar-header">
+          <h3>选择书籍与章节</h3>
+          <button class="close-button" @click="isBookSidebarOpen = false">×</button>
+        </div>
+        <div class="sidebar-content">
+          <div class="book-chapter-selector">
+            <select v-model="currentBook" class="chapter-select" @change="onBookChange">
+              <option value="" disabled>选择书籍</option>
+              <option v-for="book in bookOptions" :key="book" :value="book">{{ book }}</option>
+            </select>
+            <select v-model="currentChapter" class="chapter-select" @change="onChapterSelect" :disabled="!chapterOptions.length">
+              <option value="" disabled>选择章节</option>
+              <option v-for="chapter in chapterOptions" :key="chapter" :value="chapter">{{ chapter }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 设置侧边栏 -->
+      <div class="sidebar settings-sidebar" :class="{ open: isSettingsSidebarOpen }">
+        <div class="sidebar-header">
+          <h3>设置</h3>
+          <button class="close-button" @click="isSettingsSidebarOpen = false">×</button>
+        </div>
+        <div class="sidebar-content">
           <div class="settings-group">
             <h3>朗读设置</h3>
             <label class="setting-label">语速（{{ formattedPlaybackRate }}x）</label>
@@ -161,8 +187,8 @@
               </div>
             </div>
           </div>
-        </aside>
-      </section>
+        </div>
+      </div>
 
       <section class="insight-grid">
         <article class="info-card panel analyze-card" v-if="autoAnalyze || analyzeResult">
@@ -257,6 +283,8 @@ const contentScrollTop = ref(0);
 const contentViewportHeight = ref(360);
 const savedWords = reactive(new Set(["bear", "Potters"]));
 const resolvedApiBase = ref("");
+const isBookSidebarOpen = ref(false);
+const isSettingsSidebarOpen = ref(false);
 const analyzeResult = ref(null);
 const isAnalyzing = ref(false);
 
@@ -268,6 +296,11 @@ let playToken = 0;
 let isRestoringState = false;
 const isRateMenuOpen = ref(false);
 const sentenceRefs = ref([]);
+
+function closeSidebars() {
+  isBookSidebarOpen.value = false;
+  isSettingsSidebarOpen.value = false;
+}
 
 const emptySentence = {
   english: "",
