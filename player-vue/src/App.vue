@@ -54,13 +54,13 @@
                   </div>
                 </div>
               </div>
-              <div class="transport-center">
+              <div class="transport-center" v-show="!isFullscreen">
                 <button class="transport-button" type="button" @click="isBookSidebarOpen = !isBookSidebarOpen">📚</button>
               </div>
               <div class="transport-right">
                 <div class="transport-controls">
                   <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
-                  <button class="transport-button" type="button" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen">⚙️</button>
+                  <button class="transport-button" type="button" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen" v-show="!isFullscreen">⚙️</button>
                   <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
                 </div>
               </div>
