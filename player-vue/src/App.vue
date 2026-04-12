@@ -233,7 +233,7 @@ import { marked } from "marked";
 const DEFAULT_MIN_SIZE = 500;
 const DEFAULT_BOOK = "哈利波特1-7英文原版";
 const STORAGE_KEY = "player_vue_reading_state";
-const API_CANDIDATES = ["http://localhost:8000", "http://127.0.0.1:8000"];
+const API_CANDIDATES = ["http://192.168.2.178:8000"];
 
 const FONT_SCALE_MAP = {
   sm: { "--player-english-size": "14px", "--player-empty-size": "14px" },
