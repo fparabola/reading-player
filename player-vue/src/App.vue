@@ -12,12 +12,6 @@
 
       <section class="workspace">
         <section class="main-stage panel" :style="fontScaleStyle" ref="mainStageRef">
-          <div class="collapse-button-fixed" v-show="!isTransportCollapsed">
-            <button class="transport-button collapse-button" type="button" @click="isTransportCollapsed = true">▼</button>
-          </div>
-          <div class="collapse-button-fixed" v-show="isTransportCollapsed">
-            <button class="transport-button collapse-button" type="button" @click="isTransportCollapsed = false">▲</button>
-          </div>
 
           <div class="sentence-stage content-stage">
             <template v-if="hasSentence">
@@ -39,7 +33,7 @@
             </template>
           </div>
 
-          <div class="transport" v-show="!isTransportCollapsed">
+          <div class="transport">
             <div class="transport-top">
               <div class="transport-left">
                 <div ref="rateMenuRef" class="rate-menu-wrap">
@@ -212,7 +206,8 @@
         </div>
       </div>
 
-        </main>
+
+    </main>
   </div>
 </template>
 
@@ -264,7 +259,6 @@ const resolvedApiBase = ref("");
 const isBookSidebarOpen = ref(false);
 const isSettingsSidebarOpen = ref(false);
 const audioCurrentTime = ref(0);
-const isTransportCollapsed = ref(false);
 
 // 控制body滚动
 function updateBodyScroll() {

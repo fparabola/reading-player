@@ -253,7 +253,7 @@ button { border: 0; color: inherit; background: none; }
 .english-sentence { margin: 0; font-family: var(--font-display); font-size: var(--player-english-size, 16px); line-height: 1.7; font-weight: 700; letter-spacing: 0; animation: fade-up 220ms ease; }
 .empty-copy { max-width: 700px; font-size: var(--player-empty-size, 16px); }
 
-.transport { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding: 0 20px; }
+.transport { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding: 0 20px; }
 
 .transport-top {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -310,10 +310,8 @@ button { border: 0; color: inherit; background: none; }
   background: rgba(114, 136, 255, 0.2);
 }
 .rotate { font-size: 16px; }
-.transport-buttons { gap: 18px; justify-content: center; margin: 8px 0; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.1); flex-shrink: 0; }
+.transport-buttons { gap: 18px; justify-content: center; margin: 5px 0; padding: 0; flex-shrink: 0; }
 .transport-collapse { display: flex; justify-content: center; padding: 2px 0; }
-.collapse-button { width: 28px; height: 28px; font-size: 14px; }
-.collapse-button-fixed { position: absolute; bottom: 10px; right: 10px; z-index: 10; }
 .transport-button { width: 56px; height: 56px; border-radius: 50%; cursor: pointer; background: rgba(255, 255, 255, 0.04); color: #f3f5ff; font-size: 22px; }
 
 .transport-controls .transport-button { width: 44px; height: 44px; font-size: 18px; }
@@ -321,9 +319,9 @@ button { border: 0; color: inherit; background: none; }
 .mode-toggle-button.active { background: rgba(114, 136, 255, 0.16); color: #cad3ff; }
 
 .timeline {
-  margin-top: 8px;
+  margin-top: 1px;
   padding: 0 20px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   flex-shrink: 0;
 }
 
@@ -335,7 +333,8 @@ button { border: 0; color: inherit; background: none; }
   margin-bottom: 0;
   padding-bottom: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 10px;
+  font-style: italic;
   flex-wrap: wrap;
 }
 
