@@ -4,8 +4,22 @@ LLM服务
 """
 import json
 import traceback
+import configparser
+from pathlib import Path
 from openai import OpenAI
 from typing import Optional, AsyncGenerator
+
+# 读取配置文件
+config = configparser.ConfigParser()
+config_path = Path(__file__).parent / "config.ini"
+config.read(config_path, encoding='utf-8')
+
+# API配置
+API_CONFIG = {
+    "base_url": config.get("api", "base_url", fallback="https://api.siliconflow.cn/v1"),
+    "default_model": config.get("api", "default_model", fallback="Qwen/Qwen3-14B"),
+    "system_prompt": config.get("api", "system_prompt", fallback="你是英语句子解析助手，中文回答。")
+}
 
 
 def build_analyze_prompt(text: str) -> str:
@@ -36,17 +50,17 @@ def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) ->
     - 流式分析结果
     """
     prompt = build_analyze_prompt(text)
-    model_name = model or "Qwen/Qwen3-14B"
+    model_name = model or API_CONFIG["default_model"]
     
     try:
         client = OpenAI(
             api_key=api_key,
-            base_url="https://api.siliconflow.cn/v1"
+            base_url=API_CONFIG["base_url"]
         )
         stream = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
+                {"role": "system", "content": API_CONFIG["system_prompt"]},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
