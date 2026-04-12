@@ -13,7 +13,7 @@ from prompt_helper import prompt_helper
 API_CONFIG = {
     "base_url": config_helper.get("api.base_url"),
     "default_model": config_helper.get("api.default_model"),
-    "system_prompt": config_helper.get("api.system_prompt")
+    "analyze_system_prompt": config_helper.get("api.analyze_system_prompt")
 }
 
 
@@ -53,7 +53,7 @@ def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) ->
         stream = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": API_CONFIG["system_prompt"]},
+                {"role": "system", "content": API_CONFIG["analyze_system_prompt"]},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.3,
