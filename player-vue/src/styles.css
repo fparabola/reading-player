@@ -173,6 +173,7 @@ button { border: 0; color: inherit; background: none; }
   overflow: hidden;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 .content-viewport {
@@ -182,6 +183,8 @@ button { border: 0; color: inherit; background: none; }
   margin: 0;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .lyrics-stage {
