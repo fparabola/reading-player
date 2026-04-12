@@ -657,6 +657,8 @@ function jumpToSentence(index) {
 async function nextPage() {
   if (!hasSentence.value) return;
   if (currentSentenceIndex.value < chapterSentences.value.length - 1) {
+    // 重置音频播放位置，避免继续播放的逻辑影响新句子
+    audioCurrentTime.value = 0;
     currentSentenceIndex.value += 1;
     nextTick(() => {
       centerCurrentSentence();
@@ -714,6 +716,8 @@ function goToEnd() {
 async function jumpToNextChapter() {
   if (!hasNextChapter.value) return;
   clearPreloadAudio();  // Clear preloaded audio when switching chapters
+  // 重置音频播放位置，避免继续播放的逻辑影响新章节
+  audioCurrentTime.value = 0;
   currentChapter.value = chapterOptions.value[currentChapterIndex.value + 1];
   await reloadCurrentChapter();
 }
@@ -748,8 +752,7 @@ async function replayFromCurrent() {
 async function playCurrentSentence() {
   if (!isPlaying.value || !hasSentence.value) return;
   clearAdvanceTimer();
-  stopAudio();
-
+  
   const token = ++playToken;
   const text = currentSentence.value.english;
 
@@ -792,9 +795,9 @@ async function requestTtsAudio(text, token) {
   // 检查是否是继续播放（有保存的播放位置）
   const isResuming = audioCurrentTime.value > 0;
   
-  // 如果是继续播放，且音频已经加载，则直接播放
+  // 如果是继续播放，且音频已经加载，且音频没有播放完毕，则直接播放
   const audio = audioRef.value;
-  if (isResuming && audio && audio.src) {
+  if (isResuming && audio && audio.src && !audio.ended) {
     if (token !== playToken || !isPlaying.value) return;
     await audio.play();
     return;
@@ -845,6 +848,8 @@ function scheduleTextAdvance(token, autoNext = true) {
 
 async function onAudioEnded() {
   if (!isPlaying.value || !autoPlayNext.value) return;
+  // 重置音频播放位置
+  audioCurrentTime.value = 0;
   await nextPage();
 }
 
@@ -858,7 +863,12 @@ function clearAdvanceTimer() {
 function stopAudio() {
   const audio = audioRef.value;
   if (audio) {
-    audioCurrentTime.value = audio.currentTime;
+    // 只有当音频没有播放完毕时，才保存当前位置
+    if (!audio.ended) {
+      audioCurrentTime.value = audio.currentTime;
+    } else {
+      audioCurrentTime.value = 0;
+    }
     audio.pause();
   }
   // 不要移除src属性，保留音频资源以便继续播放
