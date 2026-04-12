@@ -201,12 +201,13 @@ button { border: 0; color: inherit; background: none; }
 .content-viewport {
   width: 100%;
   max-width: 100%;
-  height: 360px;
+  flex: 1;
   overflow-y: auto;
   padding: 0;
   scrollbar-width: none;
   scroll-behavior: smooth;
   box-sizing: border-box;
+  min-height: 0;
 }
 .content-viewport::-webkit-scrollbar {
   display: none;
