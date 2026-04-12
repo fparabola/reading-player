@@ -768,6 +768,8 @@ body.fullscreen-mode .player-page {
   margin: 0 !important;
   padding: 0 !important;
   text-align: justify !important;
+  box-sizing: border-box !important;
+  min-width: 0 !important;
 }
 
 /* 全屏模式下内容视口占满宽度 */
