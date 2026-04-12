@@ -253,7 +253,11 @@ button { border: 0; color: inherit; background: none; }
 .english-sentence { margin: 0; font-family: var(--font-display); font-size: var(--player-english-size, 16px); line-height: 1.7; font-weight: 700; letter-spacing: 0; animation: fade-up 220ms ease; }
 .empty-copy { max-width: 700px; font-size: var(--player-empty-size, 16px); }
 
-.transport { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 12px; padding: 0 20px; }
+.transport { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding: 0 20px; }
+
+.transport-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
 
 .transport-controls {
   display: flex;

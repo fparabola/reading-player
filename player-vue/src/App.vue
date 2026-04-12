@@ -43,22 +43,28 @@
           </div>
 
           <div class="transport">
-            <div ref="rateMenuRef" class="rate-menu-wrap">
-              <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
-                <span class="rotate">⟳</span>
-                <span>{{ formattedPlaybackRate }}x</span>
-              </button>
-              <div v-if="isRateMenuOpen" class="rate-popover panel">
-                <button
-                  v-for="rate in rateMenuOptions"
-                  :key="rate"
-                  type="button"
-                  class="rate-popover-item"
-                  :class="{ active: numericPlaybackRate === rate }"
-                  @click="selectPlaybackRate(rate)"
-                >
-                  {{ formatPlaybackRateLabel(rate) }}x
+            <div class="transport-top">
+              <div ref="rateMenuRef" class="rate-menu-wrap">
+                <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
+                  <span class="rotate">⟳</span>
+                  <span>{{ formattedPlaybackRate }}x</span>
                 </button>
+                <div v-if="isRateMenuOpen" class="rate-popover panel">
+                  <button
+                    v-for="rate in rateMenuOptions"
+                    :key="rate"
+                    type="button"
+                    class="rate-popover-item"
+                    :class="{ active: numericPlaybackRate === rate }"
+                    @click="selectPlaybackRate(rate)"
+                  >
+                    {{ formatPlaybackRateLabel(rate) }}x
+                  </button>
+                </div>
+              </div>
+              <div class="transport-controls">
+                <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
+                <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
               </div>
             </div>
 
@@ -71,11 +77,6 @@
               <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence">▶</button>
               <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence">▶|</button>
             </div>
-            <div class="transport-controls">
-              <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
-              <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
-            </div>
-
 
           </div>
 
