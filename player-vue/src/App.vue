@@ -6,16 +6,7 @@
     <audio ref="audioRef" preload="auto" @ended="onAudioEnded"></audio>
 
     <main class="player-page">
-      <header class="top-bar panel">
-        <div class="header-actions">
-          <button class="sidebar-toggle" @click="isBookSidebarOpen = !isBookSidebarOpen">
-            📚 书籍
-          </button>
-          <button class="sidebar-toggle" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen">
-            ⚙️ 设置
-          </button>
-        </div>
-      </header>
+
 
 
 
@@ -65,6 +56,8 @@
               <div class="transport-controls">
                 <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
                 <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
+                <button class="transport-button" type="button" @click="isBookSidebarOpen = !isBookSidebarOpen">📚</button>
+                <button class="transport-button" type="button" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen">⚙️</button>
               </div>
             </div>
 
