@@ -756,6 +756,37 @@ body.fullscreen-mode .player-page {
   background: rgba(9, 11, 23, 0.98) !important;
 }
 
+/* 全屏模式下内容文本占满宽度 */
+:fullscreen .content-text,
+:-webkit-full-screen .content-text,
+:-ms-fullscreen .content-text {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: justify !important;
+}
+
+/* 全屏模式下内容视口占满宽度 */
+:fullscreen .content-viewport,
+:-webkit-full-screen .content-viewport,
+:-ms-fullscreen .content-viewport {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 全屏模式下句子舞台占满宽度 */
+:fullscreen .sentence-stage,
+:-webkit-full-screen .sentence-stage,
+:-ms-fullscreen .sentence-stage {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 /* 全屏模式下内容区域自适应 */
 :fullscreen .content-viewport,
 :-webkit-full-screen .content-viewport,
