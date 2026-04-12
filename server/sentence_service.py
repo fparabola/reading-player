@@ -23,6 +23,7 @@ import json
 import requests
 import traceback
 import httpx
+from openai import OpenAI
 
 app = FastAPI(title="Sentence Splitter API", version="2.0.0")
 
@@ -747,33 +748,23 @@ async def analyze_text(request: AnalyzeRequest):
     prompt = build_analyze_prompt(request.text)
 
     model_name = request.model or "Qwen/Qwen3-14B"
-    payload = {
-        "model": model_name,
-        "messages": [
-            {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.3
-    }
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
 
     try:
         log_line("request start")
-        resp = requests.post(
-            "https://api.siliconflow.cn/v1/chat/completions",
-            headers=headers,
-            data=json.dumps(payload),
-            timeout=60
+        # 使用OpenAI SDK
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.siliconflow.cn/v1"
         )
-        if resp.status_code != 200:
-            log_line(f"LLM status={resp.status_code} body={resp.text}")
-            raise HTTPException(status_code=500, detail="LLM error")
-        data = resp.json()
-        content = data["choices"][0]["message"]["content"]
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3
+        )
+        content = response.choices[0].message.content
         log_line(f"LLM response: {content}")
     except HTTPException:
         raise
@@ -798,50 +789,27 @@ async def analyze_text_stream(request: AnalyzeRequest):
     prompt = build_analyze_prompt(request.text)
 
     model_name = request.model or "Qwen/Qwen3-14B"
-    payload = {
-        "model": model_name,
-        "messages": [
-            {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
-            {"role": "user", "content": prompt}
-        ],
-        "temperature": 0.3,
-        "stream": True
-    }
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
-    }
 
     async def stream_generator():
-        buffer = b""
         try:
-            async with httpx.AsyncClient(timeout=60) as client:
-                async with client.stream(
-                    "POST",
-                    "https://api.siliconflow.cn/v1/chat/completions",
-                    headers=headers,
-                    json=payload
-                ) as resp:
-                    if resp.status_code != 200:
-                        return
-                    async for chunk in resp.aiter_bytes():
-                        buffer += chunk
-                        while b"\n" in buffer:
-                            line, buffer = buffer.split(b"\n", 1)
-                            line = line.decode("utf-8").strip()
-                            if not line or not line.startswith("data:"):
-                                continue
-                            data = line[len("data:"):].strip()
-                            if data == "[DONE]":
-                                break
-                            try:
-                                chunk_data = json.loads(data)
-                                delta = chunk_data.get("choices", [{}])[0].get("delta", {}).get("content")
-                                if delta:
-                                    yield delta
-                            except Exception:
-                                continue
+            # 使用OpenAI SDK
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.siliconflow.cn/v1"
+            )
+            stream = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "你是英语句子解析助手，中文回答。"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                stream=True
+            )
+            for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if delta:
+                    yield delta
         except Exception:
             pass
 
