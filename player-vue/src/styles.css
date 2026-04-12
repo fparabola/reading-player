@@ -731,6 +731,16 @@ body.fullscreen-mode .top-bar {
   display: none !important;
 }
 
+/* 全屏模式下播放器页面占满宽度 */
+:fullscreen .player-page,
+:-webkit-full-screen .player-page,
+:-ms-fullscreen .player-page,
+body.fullscreen-mode .player-page {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 /* 全屏模式下播放器占满页面 */
 :fullscreen,
 :-webkit-full-screen,
