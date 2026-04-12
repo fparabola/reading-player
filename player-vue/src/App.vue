@@ -7,11 +7,6 @@
 
     <main class="player-page">
       <header class="top-bar panel">
-        <div class="brand">
-          <div class="brand-icon"><span></span><span></span></div>
-          <span class="brand-text">书籍与章节</span>
-        </div>
-
         <div class="header-actions">
           <button class="sidebar-toggle" @click="isBookSidebarOpen = !isBookSidebarOpen">
             📚 书籍
