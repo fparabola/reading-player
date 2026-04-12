@@ -47,7 +47,6 @@
               <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
                 <span class="rotate">⟳</span>
                 <span>{{ formattedPlaybackRate }}x</span>
-                <span>语速</span>
               </button>
               <div v-if="isRateMenuOpen" class="rate-popover panel">
                 <button
