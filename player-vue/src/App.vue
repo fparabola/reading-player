@@ -37,7 +37,6 @@
             <div class="transport-top">
               <div ref="rateMenuRef" class="rate-menu-wrap">
                 <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
-                  <span class="rotate">⟳</span>
                   <span>{{ formattedPlaybackRate }}x</span>
                 </button>
                 <div v-if="isRateMenuOpen" class="rate-popover panel">
@@ -55,9 +54,9 @@
               </div>
               <div class="transport-controls">
                 <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
-                <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
                 <button class="transport-button" type="button" @click="isBookSidebarOpen = !isBookSidebarOpen">📚</button>
                 <button class="transport-button" type="button" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen">⚙️</button>
+                <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
               </div>
             </div>
 
