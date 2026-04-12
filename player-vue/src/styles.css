@@ -42,9 +42,8 @@ button { border: 0; color: inherit; background: none; }
 .panel { background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); backdrop-filter: blur(18px); }
 
 .top-bar {
-  display: grid;
-  grid-template-columns: 220px auto;
-  gap: 18px;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
   padding: 14px 18px;
   border-radius: var(--radius-xl);
