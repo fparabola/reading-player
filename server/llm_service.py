@@ -12,19 +12,21 @@ from prompt_helper import prompt_helper
 # API配置
 API_CONFIG = {
     "base_url": config_helper.get("api.base_url"),
-    "default_model": config_helper.get("api.default_model"),
-    "analyze_system_prompt": config_helper.get("api.analyze_system_prompt")
+    "default_model": config_helper.get("api.default_model")
 }
 
 
-def build_analyze_prompt(text: str) -> str:
+def build_analyze_prompt() -> str:
     """
-    构建分析提示
+    构建分析提示（作为system prompt）
     """
     # 使用prompt_helper获取prompt
     prompt_template = prompt_helper.get_prompt("", "analyze_prompt")
-    # 替换文本占位符
-    return prompt_template.replace("{text}", text) if prompt_template else text
+    # 移除文本占位符部分
+    if prompt_template:
+        # 移除"以下是文本：\n{text}"部分
+        prompt_template = prompt_template.split("以下是文本：")[0].strip()
+    return prompt_template if prompt_template else "你是英语句子解析助手，中文回答。"
 
 
 
@@ -42,7 +44,8 @@ def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) ->
     返回:
     - 流式分析结果
     """
-    prompt = build_analyze_prompt(text)
+    system_prompt = build_analyze_prompt()
+    user_prompt = text
     model_name = model or API_CONFIG["default_model"]
     
     try:
@@ -53,8 +56,8 @@ def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) ->
         stream = client.chat.completions.create(
             model=model_name,
             messages=[
-                {"role": "system", "content": API_CONFIG["analyze_system_prompt"]},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
             ],
             temperature=0.3,
             stream=True
