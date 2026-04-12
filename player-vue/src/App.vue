@@ -34,7 +34,7 @@
           </div>
 
           <div class="transport">
-            <div class="transport-top">
+            <div class="transport-top" v-show="!isTransportTopCollapsed">
               <div class="transport-left">
                 <div ref="rateMenuRef" class="rate-menu-wrap">
                   <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
@@ -62,11 +62,15 @@
                   <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
                   <button class="transport-button" type="button" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen" v-show="!isFullscreen">⚙️</button>
                   <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
+                  <button class="transport-button" type="button" @click="isTransportTopCollapsed = true">▼</button>
                 </div>
               </div>
             </div>
+            <div v-show="isTransportTopCollapsed" class="transport-collapse">
+              <button class="transport-button collapse-button" type="button" @click="isTransportTopCollapsed = false">▲</button>
+            </div>
 
-            <div class="transport-buttons">
+            <div class="transport-buttons" v-show="!isTransportButtonsCollapsed">
               <button class="transport-button" type="button" @click="goToStart" :disabled="!hasSentence">|◀</button>
               <button class="transport-button" type="button" @click="previousPage" :disabled="!canGoPrev">◀</button>
               <button class="transport-button primary" type="button" @click="togglePlayback" :disabled="!hasSentence">
@@ -74,6 +78,10 @@
               </button>
               <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence">▶</button>
               <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence">▶|</button>
+              <button class="transport-button" type="button" @click="isTransportButtonsCollapsed = true">▼</button>
+            </div>
+            <div v-show="isTransportButtonsCollapsed" class="transport-collapse">
+              <button class="transport-button collapse-button" type="button" @click="isTransportButtonsCollapsed = false">▲</button>
             </div>
 
           </div>
@@ -259,6 +267,8 @@ const resolvedApiBase = ref("");
 const isBookSidebarOpen = ref(false);
 const isSettingsSidebarOpen = ref(false);
 const audioCurrentTime = ref(0);
+const isTransportTopCollapsed = ref(false);
+const isTransportButtonsCollapsed = ref(false);
 
 // 控制body滚动
 function updateBodyScroll() {
