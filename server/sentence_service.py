@@ -174,6 +174,9 @@ def get_resource_books() -> List[BookInfo]:
 
 def get_chapter_path(book_name: str, chapter_name: str) -> Path:
     """获取章节文件的路径"""
+    # 添加.txt后缀
+    if not chapter_name.endswith('.txt'):
+        chapter_name = f"{chapter_name}.txt"
     return RESOURCE_DIR / book_name / chapter_name
 
 
