@@ -285,7 +285,41 @@ watch([isBookSidebarOpen, isSettingsSidebarOpen], updateBodyScroll);
 onMounted(() => {
   updateBodyScroll();
   // 其他初始化代码...
+  
+  // 添加键盘事件监听器
+  window.addEventListener('keydown', handleKeyDown);
 });
+
+// 处理键盘事件
+function handleKeyDown(event) {
+  // 避免在输入框中触发快捷键
+  if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+    return;
+  }
+  
+  switch (event.key) {
+    case ' ': // 空格键：暂停/播放
+      event.preventDefault(); // 阻止页面滚动
+      togglePlayback();
+      break;
+    case 'ArrowLeft': // 左方向键：上一句
+      event.preventDefault();
+      previousPage();
+      break;
+    case 'ArrowRight': // 右方向键：下一句
+      event.preventDefault();
+      nextPage();
+      break;
+    case 'ArrowUp': // 上方向键：语速快一档
+      event.preventDefault();
+      playbackRate.value = Math.min(playbackRate.value + 0.25, 2.0);
+      break;
+    case 'ArrowDown': // 下方向键：语速慢一档
+      event.preventDefault();
+      playbackRate.value = Math.max(playbackRate.value - 0.25, 0.5);
+      break;
+  }
+}
 const analyzeResult = ref(null);
 const isAnalyzing = ref(false);
 
@@ -415,6 +449,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener("pointerdown", onWindowPointerDown);
   window.removeEventListener("resize", syncContentViewportMetrics);
+  window.removeEventListener('keydown', handleKeyDown);
   stopPlayback();
 });
 
