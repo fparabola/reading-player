@@ -226,6 +226,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { useFullscreen } from "@vueuse/core";
 import { marked } from "marked";
 
 const DEFAULT_MIN_SIZE = 500;
@@ -289,16 +290,6 @@ onMounted(() => {
   
   // 添加键盘事件监听器
   window.addEventListener('keydown', handleKeyDown);
-  
-  // 添加全屏状态变化监听器
-  document.addEventListener('fullscreenchange', handleFullscreenChange);
-  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-  document.addEventListener('msfullscreenchange', handleFullscreenChange);
-  
-  // 添加全屏错误监听器
-  document.addEventListener('fullscreenerror', handleFullscreenError);
-  document.addEventListener('webkitfullscreenerror', handleFullscreenError);
-  document.addEventListener('msfullscreenerror', handleFullscreenError);
 });
 
 // 处理键盘事件
@@ -336,58 +327,18 @@ function handleKeyDown(event) {
   }
 }
 
-// 全屏状态
-const isFullscreen = ref(false);
-
-// 切换全屏
-function toggleFullscreen() {
-  const element = document.documentElement;
-  
-  if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-    // 进入全屏
-    if (element.requestFullscreen) {
-      element.requestFullscreen().catch(err => {
-        console.error('进入全屏失败:', err);
-      });
-    } else if (element.webkitRequestFullscreen) {
-      element.webkitRequestFullscreen().catch(err => {
-        console.error('进入全屏失败:', err);
-      });
-    } else if (element.msRequestFullscreen) {
-      element.msRequestFullscreen().catch(err => {
-        console.error('进入全屏失败:', err);
-      });
+// 全屏功能
+const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(document.documentElement, {
+  autoExit: false,
+  onFullscreenChange: (isFull) => {
+    // 强制更新样式
+    if (isFull) {
+      document.body.classList.add('fullscreen-mode');
     } else {
-      console.error('您的浏览器不支持全屏模式');
-    }
-  } else {
-    // 退出全屏
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
+      document.body.classList.remove('fullscreen-mode');
     }
   }
-}
-
-// 监听全屏状态变化
-function handleFullscreenChange() {
-  isFullscreen.value = !!document.fullscreenElement || !!document.webkitFullscreenElement || !!document.msFullscreenElement;
-  
-  // 强制更新样式
-  if (isFullscreen.value) {
-    document.body.classList.add('fullscreen-mode');
-  } else {
-    document.body.classList.remove('fullscreen-mode');
-  }
-}
-
-// 监听全屏错误
-function handleFullscreenError() {
-  console.error('全屏操作失败');
-}
+});
 const analyzeResult = ref(null);
 const isAnalyzing = ref(false);
 
@@ -518,16 +469,6 @@ onBeforeUnmount(() => {
   window.removeEventListener("pointerdown", onWindowPointerDown);
   window.removeEventListener("resize", syncContentViewportMetrics);
   window.removeEventListener('keydown', handleKeyDown);
-  
-  // 移除全屏状态变化监听器
-  document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-  document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-  
-  // 移除全屏错误监听器
-  document.removeEventListener('fullscreenerror', handleFullscreenError);
-  document.removeEventListener('webkitfullscreenerror', handleFullscreenError);
-  document.removeEventListener('msfullscreenerror', handleFullscreenError);
   
   stopPlayback();
 });
