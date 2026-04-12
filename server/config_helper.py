@@ -6,6 +6,13 @@ import configparser
 from pathlib import Path
 
 
+class ConfigError(Exception):
+    """
+    配置错误异常
+    """
+    pass
+
+
 class ConfigHelper:
     """
     配置助手类
@@ -31,59 +38,30 @@ class ConfigHelper:
         """
         self.config.read(self.config_path, encoding='utf-8')
     
-    def get(self, section: str, key: str, fallback=None):
+    def get(self, config_name: str) -> str:
         """
         获取配置值
         
         参数:
-        - section: 配置节
-        - key: 配置键
-        - fallback: 默认值
+        - config_name: 配置名，格式为 "section.key"
         
         返回:
         - 配置值
+        
+        异常:
+        - ConfigError: 当配置不存在时抛出
         """
+        try:
+            section, key = config_name.split('.', 1)
+        except ValueError:
+            raise ConfigError(f"Invalid config name format: {config_name}")
+        
         if not self.config.has_section(section):
-            return fallback
+            raise ConfigError(f"Section '{section}' not found in config")
         if not self.config.has_option(section, key):
-            return fallback
+            raise ConfigError(f"Key '{key}' not found in section '{section}'")
+        
         return self.config.get(section, key)
-    
-    def get_api_key(self) -> str:
-        """
-        获取API密钥
-        
-        返回:
-        - API密钥
-        """
-        return self.get("auth", "siliconflow_api_key")
-    
-    def get_base_url(self) -> str:
-        """
-        获取API基础URL
-        
-        返回:
-        - API基础URL
-        """
-        return self.get("api", "base_url", fallback="https://api.siliconflow.cn/v1")
-    
-    def get_default_model(self) -> str:
-        """
-        获取默认模型名称
-        
-        返回:
-        - 默认模型名称
-        """
-        return self.get("api", "default_model", fallback="Qwen/Qwen3-14B")
-    
-    def get_system_prompt(self) -> str:
-        """
-        获取系统提示语
-        
-        返回:
-        - 系统提示语
-        """
-        return self.get("api", "system_prompt", fallback="你是英语句子解析助手，中文回答。")
 
 
 # 创建全局配置助手实例

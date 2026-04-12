@@ -11,9 +11,9 @@ from prompt_helper import prompt_helper
 
 # API配置
 API_CONFIG = {
-    "base_url": config_helper.get_base_url(),
-    "default_model": config_helper.get_default_model(),
-    "system_prompt": config_helper.get_system_prompt()
+    "base_url": config_helper.get("api.base_url"),
+    "default_model": config_helper.get("api.default_model"),
+    "system_prompt": config_helper.get("api.system_prompt")
 }
 
 

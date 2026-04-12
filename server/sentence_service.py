@@ -81,7 +81,7 @@ def get_siliconflow_api_key() -> str:
     if env_key:
         return env_key
 
-    return (config_helper.get_api_key() or "").strip()
+    return config_helper.get("auth.siliconflow_api_key").strip()
 
 @app.on_event("startup")
 async def log_api_key():
