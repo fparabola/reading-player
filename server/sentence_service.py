@@ -23,7 +23,7 @@ import json
 import requests
 import traceback
 import httpx
-from llm_service import analyze_text_stream
+from llm_service import analyze_text_stream, annotate_text
 from config_helper import config_helper
 
 app = FastAPI(title="Sentence Splitter API", version="2.0.0")
@@ -740,6 +740,15 @@ async def analyze_text_stream_endpoint(request: AnalyzeRequest):
         "Connection": "keep-alive",
         "X-Accel-Buffering": "no"
     })
+
+@app.post("/annotate")
+async def annotate_text_endpoint(request: AnalyzeRequest):
+    api_key = get_siliconflow_api_key()
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY (env or config.ini)")
+
+    result = await annotate_text(api_key, request.text, request.model)
+    return {"annotated_text": result}
 
 
 if __name__ == "__main__":
