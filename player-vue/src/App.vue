@@ -99,20 +99,7 @@
           <p v-if="errorMessage" class="error-banner">{{ errorMessage }}</p>
         </section>
 
-        <section class="side-panel panel">
-          <article class="info-card panel analyze-card" v-if="autoAnalyze || analyzeResult">
-            <div class="loading-container" v-if="isAnalyzing">
-              <div class="loading-spinner"></div>
-            </div>
-            <div v-if="analyzeResult" class="analyze-content">
-              <div v-if="analyzeResult.error" class="analyze-error">
-                {{ analyzeResult.error }}
-              </div>
-              <div v-else class="analyze-markdown" v-html="renderAnalyzeContent(analyzeResult.raw)"></div>
-            </div>
-            <p v-else-if="!isAnalyzing" class="muted">点击播放或切换句子后将自动解析。</p>
-          </article>
-        </section>
+
       </section>
 
       <!-- 侧边栏 -->
