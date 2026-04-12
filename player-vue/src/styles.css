@@ -203,7 +203,7 @@ button { border: 0; color: inherit; background: none; }
   max-width: 100%;
   flex: 1;
   overflow-y: auto;
-  padding: 0;
+  padding: 20px;
   scrollbar-width: none;
   scroll-behavior: smooth;
   box-sizing: border-box;
