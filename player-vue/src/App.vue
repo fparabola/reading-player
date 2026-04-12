@@ -72,6 +72,7 @@
               <button class="transport-button" type="button" @click="nextPage" :disabled="!hasSentence">▶</button>
               <button class="transport-button" type="button" @click="goToEnd" :disabled="!hasSentence">▶|</button>
               <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
+              <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
             </div>
 
 
@@ -288,6 +289,16 @@ onMounted(() => {
   
   // 添加键盘事件监听器
   window.addEventListener('keydown', handleKeyDown);
+  
+  // 添加全屏状态变化监听器
+  document.addEventListener('fullscreenchange', handleFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.addEventListener('msfullscreenchange', handleFullscreenChange);
+  
+  // 添加全屏错误监听器
+  document.addEventListener('fullscreenerror', handleFullscreenError);
+  document.addEventListener('webkitfullscreenerror', handleFullscreenError);
+  document.addEventListener('msfullscreenerror', handleFullscreenError);
 });
 
 // 处理键盘事件
@@ -318,7 +329,49 @@ function handleKeyDown(event) {
       event.preventDefault();
       playbackRate.value = Math.max(playbackRate.value - 0.25, 0.5);
       break;
+    case 'f': // F键：切换全屏
+      event.preventDefault();
+      toggleFullscreen();
+      break;
   }
+}
+
+// 全屏状态
+const isFullscreen = ref(false);
+
+// 切换全屏
+function toggleFullscreen() {
+  const element = document.documentElement;
+  
+  if (!document.fullscreenElement) {
+    // 进入全屏
+    if (element.requestFullscreen) {
+      element.requestFullscreen();
+    } else if (element.webkitRequestFullscreen) {
+      element.webkitRequestFullscreen();
+    } else if (element.msRequestFullscreen) {
+      element.msRequestFullscreen();
+    }
+  } else {
+    // 退出全屏
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
+}
+
+// 监听全屏状态变化
+function handleFullscreenChange() {
+  isFullscreen.value = !!document.fullscreenElement;
+}
+
+// 监听全屏错误
+function handleFullscreenError() {
+  console.error('全屏操作失败');
 }
 const analyzeResult = ref(null);
 const isAnalyzing = ref(false);
@@ -450,6 +503,17 @@ onBeforeUnmount(() => {
   window.removeEventListener("pointerdown", onWindowPointerDown);
   window.removeEventListener("resize", syncContentViewportMetrics);
   window.removeEventListener('keydown', handleKeyDown);
+  
+  // 移除全屏状态变化监听器
+  document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+  document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+  
+  // 移除全屏错误监听器
+  document.removeEventListener('fullscreenerror', handleFullscreenError);
+  document.removeEventListener('webkitfullscreenerror', handleFullscreenError);
+  document.removeEventListener('msfullscreenerror', handleFullscreenError);
+  
   stopPlayback();
 });
 
