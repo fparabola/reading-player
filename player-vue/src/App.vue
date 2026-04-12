@@ -52,6 +52,7 @@
               </div>
               <div class="transport-center" v-show="!isFullscreen">
                 <button class="transport-button" type="button" @click="isBookSidebarOpen = !isBookSidebarOpen">📚</button>
+                <button class="transport-button" type="button" @click="annotateCurrentSentence" :disabled="!hasSentence || isAnnotating">标</button>
               </div>
               <div class="transport-right">
                 <div class="transport-controls">
@@ -269,9 +270,10 @@ function updateBodyScroll() {
 watch([isBookSidebarOpen, isSettingsSidebarOpen], updateBodyScroll);
 
 // 初始化时检查
-onMounted(() => {
+onMounted(async () => {
   updateBodyScroll();
-  // 其他初始化代码...
+  // 初始化播放器
+  await initializePlayer();
   
   // 添加键盘事件监听器
   window.addEventListener('keydown', handleKeyDown);
@@ -336,6 +338,7 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(mainStageRef, {
 });
 const analyzeResult = ref(null);
 const isAnalyzing = ref(false);
+const isAnnotating = ref(false);
 
 let advanceTimer = null;
 let currentAudioUrl = null;
@@ -421,8 +424,9 @@ watch(
       ttsEnabled,
       autoPlayNext,
       autoAnalyze,
-      fontScaleLevel,
-      () => chapterSentences.value
+      fontScaleLevel
+      // 移除对chapterSentences的监听，避免标记变化时触发存储
+      // () => chapterSentences.value
     ],
     () => {
       persistReadingState();
@@ -472,23 +476,38 @@ async function initializePlayer() {
   isInitialLoading.value = true;
   try {
     const savedState = loadReadingState();
+    
+    // 1. 加载书籍列表
     await loadBooks();
+    
+    // 2. 如果有保存的书籍，且它在书籍列表中，则使用保存的书籍
     if (savedState?.book && bookOptions.value.includes(savedState.book)) {
       currentBook.value = savedState.book;
     }
-    if (currentBook.value) {
-      await loadChapters(currentBook.value);
+    
+    // 3. 确保currentBook.value有值
+    if (!currentBook.value) {
+      currentBook.value = bookOptions.value[0] || "";
     }
+    
+    // 4. 加载章节列表
+    await loadChapters(currentBook.value);
+    
+    // 5. 如果有保存的章节，且它在章节列表中，则使用保存的章节
     if (savedState?.chapter && chapterOptions.value.includes(savedState.chapter)) {
       currentChapter.value = savedState.chapter;
     }
-    if (applySavedReadingState(savedState)) {
-      isInitialLoading.value = false;
-      return;
+    
+    // 6. 确保currentChapter.value有值
+    if (!currentChapter.value) {
+      currentChapter.value = chapterOptions.value[0] || "";
     }
-    if (currentBook.value && currentChapter.value) {
-      await loadChapter({ resetSentences: true });
-    }
+    
+    // 7. 加载章节内容
+    await loadChapter({ resetSentences: true });
+    
+    // 8. 应用保存的进度和设置
+    applySavedReadingState(savedState);
   } finally {
     isInitialLoading.value = false;
   }
@@ -500,7 +519,10 @@ async function loadBooks() {
   const books = Array.isArray(response.books) ? response.books : [];
   bookOptions.value = books;
   if (!books.length) throw new Error("未找到可用书籍");
-  currentBook.value = books.includes(DEFAULT_BOOK) ? DEFAULT_BOOK : books[0];
+  // 只在currentBook.value为空时才设置默认值，避免覆盖从保存状态中加载的值
+  if (!currentBook.value) {
+    currentBook.value = books.includes(DEFAULT_BOOK) ? DEFAULT_BOOK : books[0];
+  }
 }
 
 async function loadChapters(book) {
@@ -508,7 +530,10 @@ async function loadChapters(book) {
   const response = await fetchJson(`/chapter/${encodeURIComponent(book)}`);
   const chapters = Array.isArray(response.chapters) ? response.chapters.map((item) => item.name || item) : [];
   chapterOptions.value = chapters;
-  currentChapter.value = chapters[0] || "";
+  // 只在currentChapter.value为空时才设置默认值，避免覆盖从保存状态中加载的值
+  if (!currentChapter.value) {
+    currentChapter.value = chapters[0] || "";
+  }
 }
 
 async function onBookChange() {
@@ -1095,6 +1120,47 @@ function formatPlaybackRateLabel(rate) {
   return Number.isInteger(normalized) ? `${normalized}` : `${normalized}`.replace(/(\.\d*?[1-9])0+$/, "$1");
 }
 
+async function annotateCurrentSentence() {
+  if (!hasSentence.value || isAnnotating.value) return;
+  isAnnotating.value = true;
+  
+  try {
+    // 如果正在朗读，停止朗读
+    if (isPlaying.value) {
+      stopPlayback();
+    }
+    
+    // 调用annotate接口
+    const text = currentSentence.value.english;
+    const response = await fetchJson("/annotate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    
+    // 打印annotated_html
+    console.log("Annotated HTML：");
+    console.log(response.annotated_html);
+    
+    // 更新当前句子的english属性为annotated_html
+    if (response.annotated_html) {
+      chapterSentences.value[currentSentenceIndex.value].english = response.annotated_html;
+    }
+    
+    // 打印ai标记的文本
+    if (response.annotation_list && response.annotation_list.annotations) {
+      console.log("AI标记的文本：");
+      response.annotation_list.annotations.forEach((annotation, index) => {
+        console.log(`${index + 1}. ${annotation.content} (类型: ${annotation.type}, 风险: ${annotation.risk})`);
+      });
+    }
+  } catch (error) {
+    handleError(error);
+  } finally {
+    isAnnotating.value = false;
+  }
+}
+
 function loadReadingState() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -1109,36 +1175,32 @@ function loadReadingState() {
 function applySavedReadingState(savedState) {
   console.log('Applying saved state:', savedState);
   if (!savedState) return false;
-  if (!savedState.book || !savedState.chapter) return false;
-  console.log('Current book:', currentBook.value, 'Current chapter:', currentChapter.value);
-  if (savedState.book !== currentBook.value || savedState.chapter !== currentChapter.value) {
-    console.log('Book or chapter mismatch, not applying saved state');
-    return false;
-  }
-  if (!Array.isArray(savedState.chapterSentences) || !savedState.chapterSentences.length) {
-    console.log('No chapter sentences in saved state, not applying');
-    return false;
-  }
-
+  
   isRestoringState = true;
-  chapterSentences.value = savedState.chapterSentences;
+  
+  // 应用保存的进度和设置，即使书籍或章节不匹配
   currentPosition.value = Number(savedState.currentPosition || 0);
   chapterFinished.value = Boolean(savedState.chapterFinished);
-  const restoredIndex = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
-  console.log('Restored currentSentenceIndex:', restoredIndex);
-  console.log('chapterSentences.length:', chapterSentences.value.length);
-  console.log('safeSentenceCount:', Math.max(chapterSentences.value.length, 1));
   
-  // 先设置progressValue，再设置currentSentenceIndex，确保进度条正确显示
-  progressValue.value = restoredIndex;
-  currentSentenceIndex.value = restoredIndex;
+  // 尝试恢复句子索引，但要确保在有效范围内
+  if (savedState.currentSentenceIndex) {
+    const restoredIndex = clampIndex(savedState.currentSentenceIndex, chapterSentences.value.length);
+    console.log('Restored currentSentenceIndex:', restoredIndex);
+    console.log('chapterSentences.length:', chapterSentences.value.length);
+    
+    // 先设置progressValue，再设置currentSentenceIndex，确保进度条正确显示
+    progressValue.value = restoredIndex;
+    currentSentenceIndex.value = restoredIndex;
+  }
   
+  // 应用其他设置
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
   autoAnalyze.value = typeof savedState.autoAnalyze === "boolean" ? savedState.autoAnalyze : autoAnalyze.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   contentScrollTop.value = Number(savedState.contentScrollTop || 0);
+  
   isRestoringState = false;
   
   // 等待DOM更新完成后再滚动到保存的位置
@@ -1162,7 +1224,8 @@ function persistReadingState() {
     currentSentenceIndex: currentSentenceIndex.value,
     currentPosition: currentPosition.value,
     chapterFinished: chapterFinished.value,
-    chapterSentences: chapterSentences.value,
+    // 不存储chapterSentences，避免标记被保留
+    // chapterSentences: chapterSentences.value,
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     autoPlayNext: autoPlayNext.value,

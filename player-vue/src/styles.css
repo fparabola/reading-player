@@ -914,3 +914,16 @@ body.fullscreen-mode .transport-buttons {
   justify-content: center !important;
   margin: 16px 0 !important;
 }
+
+/* 标注样式 */
+.content-text mark {
+  display: inline;
+  text-decoration: underline !important;
+  text-decoration-color: var(--accent) !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 4px !important;
+  background-color: transparent !important;
+  color: inherit !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}

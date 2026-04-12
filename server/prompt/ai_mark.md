@@ -7,6 +7,7 @@ Annotate the text using ONLY <mark> tags to mark likely reading difficulty point
 
 RULES:
 
+0. Output must include the full original text.
 1. Only use <mark> tags.
 2. Each <mark> must include:
    - data-id (required, same meaning unit shares same id)
@@ -27,4 +28,4 @@ idioms, phrasal verbs, ambiguous grammar, discourse markers.
 -------------------------
 
 OUTPUT:
-Return ONLY valid HTML.
+Return ONLY original text with XML markers.

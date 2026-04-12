@@ -43,10 +43,10 @@ app.add_middleware(
     allow_headers=["*"],  # 允许所有头
 )
 
-# 资源目录常量
-RESOURCE_DIR = Path(__file__).parent / "resource"
+# 资源目录
+RESOURCE_DIR = Path(__file__).parent.parent / "resource"
 LOG_PATH = Path(__file__).parent / "service.log"
-CONFIG_PATH = Path(__file__).parent / "config.ini"
+CONFIG_PATH = Path(__file__).parent.parent / "config.ini"
 TTS_CACHE_DIR = Path(__file__).parent / "tts"
 _CONFIG_CACHE: Optional[configparser.ConfigParser] = None
 
@@ -754,8 +754,26 @@ async def annotate_text_endpoint(request: AnalyzeRequest):
         raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY (env or config.ini)")
 
     annotated_html = await annotate_text(api_key, request.text, request.model)
-    structured_annotations = parse_annotations(annotated_html)
-    return structured_annotations
+    
+    # 导入fix_annotated_html函数
+    from llm_service import fix_annotated_html
+    
+    # 修复标注HTML，确保mark标签之间有空格
+    fixed_annotated_html = fix_annotated_html(annotated_html)
+    
+    structured_annotations = parse_annotations(fixed_annotated_html)
+    
+    # 导入create_readable_annotations函数
+    from llm_service import create_readable_annotations
+    
+    # 生成标注列表
+    annotation_list = create_readable_annotations(structured_annotations)
+    
+    # 返回包含标记HTML和标注列表的响应
+    return {
+        "annotated_html": fixed_annotated_html,
+        "annotation_list": annotation_list
+    }
 
 
 if __name__ == "__main__":
