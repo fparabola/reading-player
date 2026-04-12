@@ -35,28 +35,34 @@
 
           <div class="transport">
             <div class="transport-top">
-              <div ref="rateMenuRef" class="rate-menu-wrap">
-                <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
-                  <span>{{ formattedPlaybackRate }}x</span>
-                </button>
-                <div v-if="isRateMenuOpen" class="rate-popover panel">
-                  <button
-                    v-for="rate in rateMenuOptions"
-                    :key="rate"
-                    type="button"
-                    class="rate-popover-item"
-                    :class="{ active: numericPlaybackRate === rate }"
-                    @click="selectPlaybackRate(rate)"
-                  >
-                    {{ formatPlaybackRateLabel(rate) }}x
+              <div class="transport-left">
+                <div ref="rateMenuRef" class="rate-menu-wrap">
+                  <button class="rate-chip" type="button" @click="toggleRateMenu" :class="{ active: isRateMenuOpen }">
+                    <span>{{ formattedPlaybackRate }}x</span>
                   </button>
+                  <div v-if="isRateMenuOpen" class="rate-popover panel">
+                    <button
+                      v-for="rate in rateMenuOptions"
+                      :key="rate"
+                      type="button"
+                      class="rate-popover-item"
+                      :class="{ active: numericPlaybackRate === rate }"
+                      @click="selectPlaybackRate(rate)"
+                    >
+                      {{ formatPlaybackRateLabel(rate) }}x
+                    </button>
+                  </div>
                 </div>
               </div>
-              <div class="transport-controls">
+              <div class="transport-center">
                 <button class="transport-button" type="button" @click="centerCurrentSentence(true)" :disabled="!hasSentence">◎</button>
-                <button class="transport-button" type="button" @click="isBookSidebarOpen = !isBookSidebarOpen">📚</button>
-                <button class="transport-button" type="button" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen">⚙️</button>
-                <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
+              </div>
+              <div class="transport-right">
+                <div class="transport-controls">
+                  <button class="transport-button" type="button" @click="isBookSidebarOpen = !isBookSidebarOpen">📚</button>
+                  <button class="transport-button" type="button" @click="isSettingsSidebarOpen = !isSettingsSidebarOpen">⚙️</button>
+                  <button class="transport-button" type="button" @click="toggleFullscreen" :disabled="!hasSentence">⛶</button>
+                </div>
               </div>
             </div>
 

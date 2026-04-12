@@ -259,6 +259,26 @@ button { border: 0; color: inherit; background: none; }
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 
+.transport-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.transport-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transport-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .transport-controls {
   display: flex;
   gap: 16px;
