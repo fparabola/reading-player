@@ -776,17 +776,24 @@ body.fullscreen-mode .top-bar {
 }
 
 /* 全屏模式下隐藏书籍和设置按钮 */
+body.fullscreen-mode .transport-center {
+  display: none !important;
+}
+
+body.fullscreen-mode .transport-controls button:nth-child(2) {
+  display: none !important;
+}
+
+/* 针对不同浏览器的全屏模式 */
 :fullscreen .transport-center,
 :-webkit-full-screen .transport-center,
-:-ms-fullscreen .transport-center,
-body.fullscreen-mode .transport-center {
+:-ms-fullscreen .transport-center {
   display: none !important;
 }
 
 :fullscreen .transport-controls button:nth-child(2),
 :-webkit-full-screen .transport-controls button:nth-child(2),
-:-ms-fullscreen .transport-controls button:nth-child(2),
-body.fullscreen-mode .transport-controls button:nth-child(2) {
+:-ms-fullscreen .transport-controls button:nth-child(2) {
   display: none !important;
 }
 
