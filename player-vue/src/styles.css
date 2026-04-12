@@ -751,6 +751,22 @@ body:-webkit-full-screen .workspace,
 body:-ms-fullscreen .workspace {
   height: 100%;
   grid-template-rows: 1fr auto;
+  grid-template-columns: 1fr;
+}
+
+/* 全屏模式下隐藏右侧面板 */
+body:fullscreen .side-panel,
+body:-webkit-full-screen .side-panel,
+body:-ms-fullscreen .side-panel {
+  display: none;
+}
+
+/* 全屏模式下主播放器区域占满宽度 */
+body:fullscreen .main-content,
+body:-webkit-full-screen .main-content,
+body:-ms-fullscreen .main-content {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 /* 全屏模式下侧边栏 */
