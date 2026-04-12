@@ -4,21 +4,16 @@ LLM服务
 """
 import json
 import traceback
-import configparser
 from pathlib import Path
 from openai import OpenAI
 from typing import Optional, AsyncGenerator
-
-# 读取配置文件
-config = configparser.ConfigParser()
-config_path = Path(__file__).parent / "config.ini"
-config.read(config_path, encoding='utf-8')
+from config_helper import config_helper
 
 # API配置
 API_CONFIG = {
-    "base_url": config.get("api", "base_url", fallback="https://api.siliconflow.cn/v1"),
-    "default_model": config.get("api", "default_model", fallback="Qwen/Qwen3-14B"),
-    "system_prompt": config.get("api", "system_prompt", fallback="你是英语句子解析助手，中文回答。")
+    "base_url": config_helper.get_base_url(),
+    "default_model": config_helper.get_default_model(),
+    "system_prompt": config_helper.get_system_prompt()
 }
 
 

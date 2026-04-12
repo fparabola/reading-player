@@ -24,6 +24,7 @@ import requests
 import traceback
 import httpx
 from llm_service import analyze_text_stream
+from config_helper import config_helper
 
 app = FastAPI(title="Sentence Splitter API", version="2.0.0")
 
@@ -80,8 +81,7 @@ def get_siliconflow_api_key() -> str:
     if env_key:
         return env_key
 
-    config = load_local_config()
-    return (config.get("auth", "siliconflow_api_key", fallback="") or "").strip()
+    return (config_helper.get_api_key() or "").strip()
 
 @app.on_event("startup")
 async def log_api_key():
