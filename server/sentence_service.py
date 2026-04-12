@@ -735,7 +735,11 @@ async def analyze_text_stream_endpoint(request: AnalyzeRequest):
         async for delta in analyze_text_stream(api_key, request.text, request.model):
             yield delta
 
-    return StreamingResponse(stream_generator(), media_type="text/plain; charset=utf-8")
+    return StreamingResponse(stream_generator(), media_type="text/plain; charset=utf-8", headers={
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no"
+    })
 
 
 if __name__ == "__main__":

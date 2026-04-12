@@ -4,18 +4,18 @@ LLM服务
 """
 import json
 import traceback
-from openai import OpenAI
-from typing import Optional, AsyncGenerator
+from openai import AsyncOpenAI
+from typing import Optional
 from config_helper import config_helper
 from prompt_helper import prompt_helper
 
-# API配置
 API_CONFIG = {
     "base_url": config_helper.get("api.base_url"),
-    "default_model": config_helper.get("api.default_model")
+    "default_model": config_helper.get("api.default_model"),
+    "temperature": float(config_helper.get("api.temperature"))
 }
 
-def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) -> AsyncGenerator[str, None]:
+async def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None):
     """
     流式分析文本
     
@@ -32,20 +32,24 @@ def analyze_text_stream(api_key: str, text: str, model: Optional[str] = None) ->
     model_name = model or API_CONFIG["default_model"]
     
     try:
-        client = OpenAI(
+        client = AsyncOpenAI(
             api_key=api_key,
             base_url=API_CONFIG["base_url"]
         )
-        stream = client.chat.completions.create(
+        
+        # 使用异步流式API
+        stream = await client.chat.completions.create(
             model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.3,
+            temperature=API_CONFIG["temperature"],
             stream=True
         )
-        for chunk in stream:
+        
+        # 异步迭代stream
+        async for chunk in stream:
             delta = chunk.choices[0].delta.content
             if delta:
                 yield delta

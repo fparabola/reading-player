@@ -6,10 +6,6 @@
     <audio ref="audioRef" preload="auto" @ended="onAudioEnded"></audio>
 
     <main class="player-page">
-
-
-
-
       <section class="workspace">
         <section class="main-stage panel" :style="fontScaleStyle" ref="mainStageRef">
 
