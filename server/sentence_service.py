@@ -14,6 +14,7 @@ from pydantic import BaseModel
 import re
 import os
 import configparser
+import hashlib
 from pathlib import Path
 from typing import List, Optional
 import uvicorn
@@ -38,6 +39,7 @@ app.add_middleware(
 RESOURCE_DIR = Path(__file__).parent / "resource"
 LOG_PATH = Path(__file__).parent / "service.log"
 CONFIG_PATH = Path(__file__).parent / "config.ini"
+TTS_CACHE_DIR = Path(__file__).parent / "tts"
 _CONFIG_CACHE: Optional[configparser.ConfigParser] = None
 
 def log_line(message: str) -> None:
@@ -88,12 +90,40 @@ async def log_api_key():
     log_line(f"SILICONFLOW_API_KEY({source})={mask_key(api_key)}")
 
 async def synthesize_tts(text: str, voice: str, rate: str) -> bytes:
+    # 创建缓存目录
+    TTS_CACHE_DIR.mkdir(exist_ok=True)
+    
+    # 生成缓存文件名：句子md5 + 语音 + 语速
+    md5_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+    cache_filename = f"{md5_hash}_{voice.replace(' ', '_')}_{rate.replace('+', 'p').replace('-', 'm').replace('%', 'pc')}.mp3"
+    cache_path = TTS_CACHE_DIR / cache_filename
+    
+    # 检查缓存是否存在
+    if cache_path.exists():
+        try:
+            with open(cache_path, 'rb') as f:
+                return f.read()
+        except Exception:
+            pass
+    
+    # 缓存不存在，生成新的TTS
     communicator = edge_tts.Communicate(text=text, voice=voice, rate=rate)
     audio_bytes = bytearray()
     async for chunk in communicator.stream():
         if chunk.get("type") == "audio":
             audio_bytes.extend(chunk.get("data", b""))
-    return bytes(audio_bytes)
+    
+    audio_bytes = bytes(audio_bytes)
+    
+    # 保存到缓存
+    if audio_bytes:
+        try:
+            with open(cache_path, 'wb') as f:
+                f.write(audio_bytes)
+        except Exception:
+            pass
+    
+    return audio_bytes
 
 def chapter_sort_key(name: str) -> tuple:
     match = re.search(r"\d+", name)
