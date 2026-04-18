@@ -172,6 +172,13 @@
               <span>使用服务 TTS</span>
               <button class="inline-switch" :class="{ active: ttsEnabled }" type="button" @click="toggleTts"></button>
             </div>
+            <div class="toggle-row">
+              <span>TTS 引擎</span>
+              <select v-model="ttsEngine" class="chapter-select">
+                <option value="edge">Edge TTS</option>
+                <option value="pocket">Pocket TTS</option>
+              </select>
+            </div>
           </div>
 
           <div class="settings-group">
@@ -242,6 +249,7 @@ const fontScaleLevel = ref("md");
 const mainStageRef = ref(null);
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
+const ttsEngine = ref("edge");
 const playbackRate = ref(1.0);
 const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 const CONTENT_SCROLL_EDGE_THRESHOLD = 48;
@@ -810,8 +818,7 @@ async function playCurrentSentence() {
 }
 
 async function requestTtsAudio(text, token) {
-  const voice = detectLanguage(text) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
-  const rate = formatTtsRate(playbackRate.value);
+  const requestUrl = buildTtsRequestUrl(text);
 
   // 检查是否是继续播放（有保存的播放位置）
   const isResuming = audioCurrentTime.value > 0;
@@ -842,7 +849,7 @@ async function requestTtsAudio(text, token) {
   }
 
   // No preloaded audio, fetch new
-  const response = await fetch(buildApiUrl(`/tts?text=${encodeURIComponent(text)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`));
+  const response = await fetch(requestUrl);
   if (!response.ok) throw new Error("TTS 服务调用失败");
 
   const blob = await response.blob();
@@ -920,9 +927,7 @@ async function preloadNextSentenceAudio(nextIndex) {
     const nextSentence = chapterSentences.value[nextIndex];
     if (!nextSentence) return;
 
-    const voice = detectLanguage(nextSentence.english) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
-    const rate = formatTtsRate(playbackRate.value);
-    const response = await fetch(buildApiUrl(`/tts?text=${encodeURIComponent(nextSentence.english)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`));
+    const response = await fetch(buildTtsRequestUrl(nextSentence.english));
     if (!response.ok) return;
 
     const blob = await response.blob();
@@ -1120,6 +1125,18 @@ function formatPlaybackRateLabel(rate) {
   return Number.isInteger(normalized) ? `${normalized}` : `${normalized}`.replace(/(\.\d*?[1-9])0+$/, "$1");
 }
 
+function buildTtsRequestUrl(text) {
+  const normalizedText = text ?? "";
+
+  if (ttsEngine.value === "pocket") {
+    return buildApiUrl(`/tts/pocket?text=${encodeURIComponent(normalizedText)}&voice=alba`);
+  }
+
+  const voice = detectLanguage(normalizedText) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
+  const rate = formatTtsRate(playbackRate.value);
+  return buildApiUrl(`/tts?text=${encodeURIComponent(normalizedText)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`);
+}
+
 async function annotateCurrentSentence() {
   if (!hasSentence.value || isAnnotating.value) return;
   isAnnotating.value = true;
@@ -1196,6 +1213,7 @@ function applySavedReadingState(savedState) {
   // 应用其他设置
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
+  ttsEngine.value = savedState.ttsEngine === "pocket" ? "pocket" : "edge";
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
   autoAnalyze.value = typeof savedState.autoAnalyze === "boolean" ? savedState.autoAnalyze : autoAnalyze.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
@@ -1228,6 +1246,7 @@ function persistReadingState() {
     // chapterSentences: chapterSentences.value,
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
+    ttsEngine: ttsEngine.value,
     autoPlayNext: autoPlayNext.value,
     autoAnalyze: autoAnalyze.value,
     fontScaleLevel: fontScaleLevel.value,
