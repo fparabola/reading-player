@@ -8,23 +8,27 @@
 - 章节内容接口：获取章节的片段内容
 """
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import io
 import re
 import os
 import configparser
 import hashlib
 from pathlib import Path
+import threading
 from typing import List, Optional
 import uvicorn
 import edge_tts
 import json
+import numpy as np
 import requests
 import traceback
 import httpx
 import sys
-import os
+import wave
 
 # 添加src目录到Python路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -49,6 +53,10 @@ LOG_PATH = Path(__file__).parent / "service.log"
 CONFIG_PATH = Path(__file__).parent.parent / "config.ini"
 TTS_CACHE_DIR = Path(__file__).parent / "tts"
 _CONFIG_CACHE: Optional[configparser.ConfigParser] = None
+_POCKET_TTS_MODEL = None
+_POCKET_TTS_MODEL_LOCK = threading.Lock()
+_POCKET_TTS_VOICE_STATES = {}
+_POCKET_TTS_VOICE_LOCK = threading.Lock()
 
 def log_line(message: str) -> None:
     try:
@@ -131,6 +139,90 @@ async def synthesize_tts(text: str, voice: str, rate: str) -> bytes:
             pass
     
     return audio_bytes
+
+
+def get_pocket_tts_model():
+    global _POCKET_TTS_MODEL
+    if _POCKET_TTS_MODEL is not None:
+        return _POCKET_TTS_MODEL
+
+    with _POCKET_TTS_MODEL_LOCK:
+        if _POCKET_TTS_MODEL is None:
+            try:
+                from pocket_tts import TTSModel
+            except ImportError as exc:
+                raise RuntimeError(
+                    "pocket-tts is not installed. Run `pip install pocket-tts` in the server environment."
+                ) from exc
+
+            _POCKET_TTS_MODEL = TTSModel.load_model()
+
+    return _POCKET_TTS_MODEL
+
+
+def get_pocket_tts_voice_state(voice: str):
+    normalized_voice = (voice or "").strip() or "alba"
+    cached_state = _POCKET_TTS_VOICE_STATES.get(normalized_voice)
+    if cached_state is not None:
+        return cached_state
+
+    with _POCKET_TTS_VOICE_LOCK:
+        cached_state = _POCKET_TTS_VOICE_STATES.get(normalized_voice)
+        if cached_state is None:
+            model = get_pocket_tts_model()
+            cached_state = model.get_state_for_audio_prompt(normalized_voice)
+            _POCKET_TTS_VOICE_STATES[normalized_voice] = cached_state
+
+    return cached_state
+
+
+def pcm_tensor_to_wav_bytes(audio, sample_rate: int) -> bytes:
+    audio_array = audio.detach().cpu().numpy()
+    if audio_array.ndim != 1:
+        audio_array = np.reshape(audio_array, (-1,))
+
+    if np.issubdtype(audio_array.dtype, np.floating):
+        audio_array = np.clip(audio_array, -1.0, 1.0)
+        audio_array = (audio_array * 32767.0).astype(np.int16)
+    elif audio_array.dtype != np.int16:
+        audio_array = audio_array.astype(np.int16)
+
+    with io.BytesIO() as buffer:
+        with wave.open(buffer, "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(audio_array.tobytes())
+        return buffer.getvalue()
+
+
+def synthesize_pocket_tts_sync(text: str, voice: str) -> bytes:
+    TTS_CACHE_DIR.mkdir(exist_ok=True)
+
+    normalized_voice = (voice or "").strip() or "alba"
+    safe_voice = re.sub(r"[^0-9A-Za-z._-]+", "_", normalized_voice)
+    md5_hash = hashlib.md5(text.encode("utf-8")).hexdigest()
+    cache_filename = f"{md5_hash}_pocket_{safe_voice}.wav"
+    cache_path = TTS_CACHE_DIR / cache_filename
+
+    if cache_path.exists():
+        try:
+            return cache_path.read_bytes()
+        except Exception:
+            pass
+
+    model = get_pocket_tts_model()
+    voice_state = get_pocket_tts_voice_state(normalized_voice)
+    audio = model.generate_audio(voice_state, text)
+    wav_bytes = pcm_tensor_to_wav_bytes(audio, model.sample_rate)
+
+    if wav_bytes:
+        try:
+            cache_path.write_bytes(wav_bytes)
+        except Exception:
+            pass
+
+    return wav_bytes
 
 def chapter_sort_key(name: str) -> tuple:
     match = re.search(r"\d+", name)
@@ -729,6 +821,22 @@ async def tts(
 
 
 
+
+
+@app.get("/tts/pocket")
+async def pocket_tts(
+    text: str = Query(..., min_length=1, description="要朗读的文本"),
+    voice: str = Query("alba", description="Pocket TTS voice，支持内置 voice 名称或本地 wav/safetensors 路径")
+):
+    try:
+        audio = await run_in_threadpool(synthesize_pocket_tts_sync, text, voice)
+        if not audio:
+            raise HTTPException(status_code=500, detail="Pocket TTS returned empty audio")
+        return Response(content=audio, media_type="audio/wav")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Pocket TTS error: {str(e)}")
 
 
 @app.post("/analyze_stream")
