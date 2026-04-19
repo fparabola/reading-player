@@ -486,26 +486,34 @@ def split_sentences_nltk(text: str) -> List[str]:
         return []
 
     # 1. 先用\n分段落（保留换行符，不要丢任何字符）
-    paragraphs = []
-    current_paragraph = ''
-    for char in text:
-        current_paragraph += char
-        if char == '\n':
-            paragraphs.append(current_paragraph)
-            current_paragraph = ''
-    if current_paragraph:
-        paragraphs.append(current_paragraph)
-
-    # 2. 按顺序对每一段进行ntlk分句
+    # 直接按\n分割文本，每个\n都作为一个段落的结束
     sentences = []
-    for paragraph in paragraphs:
-        if paragraph.strip():
-            # 对每一段进行ntlk分句
-            paragraph_sentences = sent_tokenize(paragraph)
-            sentences.extend(paragraph_sentences)
+    current_line = ''
+    for char in text:
+        current_line += char
+        if char == '\n':
+            # 对当前行进行ntlk分句
+            if current_line.strip():
+                line_sentences = sent_tokenize(current_line)
+                # 保留换行符
+                for i, sentence in enumerate(line_sentences):
+                    if i == len(line_sentences) - 1:
+                        # 最后一个句子添加换行符
+                        sentences.append(sentence + '\n')
+                    else:
+                        sentences.append(sentence)
+            else:
+                # 保留空行
+                sentences.append(current_line)
+            current_line = ''
+    
+    # 处理最后一行（如果没有换行符）
+    if current_line:
+        if current_line.strip():
+            line_sentences = sent_tokenize(current_line)
+            sentences.extend(line_sentences)
         else:
-            # 保留空段落
-            sentences.append(paragraph)
+            sentences.append(current_line)
 
     return sentences
 
