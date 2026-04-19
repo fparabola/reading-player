@@ -671,7 +671,12 @@ function onSeek() {
   nextTick(() => {
     centerCurrentSentence();
   });
-  if (isPlaying.value) replayFromCurrent();
+  // 立即停止当前音频，确保切换到新句子
+  stopAudio();
+  // 重置音频播放位置
+  audioCurrentTime.value = 0;
+  // 如果正在播放，立即播放新句子
+  if (isPlaying.value) playCurrentSentence();
 }
 
 function jumpToSentence(index) {
