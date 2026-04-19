@@ -818,8 +818,13 @@ async function playCurrentSentence() {
       }
       return;
     } catch (error) {
-      handleError(error);
-      ttsEnabled.value = false;
+      // 忽略播放中断错误，不关闭TTS
+      if (error.message && error.message.includes('interrupted by a call to pause')) {
+        console.log('播放被中断，忽略错误');
+      } else {
+        handleError(error);
+        ttsEnabled.value = false;
+      }
     }
   }
 
