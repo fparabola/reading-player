@@ -33,7 +33,7 @@ import wave
 # 添加src目录到Python路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from llm_service import analyze_text_stream, annotate_text, parse_annotations
+from llm_service import analyze_text_stream
 from config_helper import config_helper
 
 app = FastAPI(title="Sentence Splitter API", version="2.0.0")
@@ -390,90 +390,82 @@ except ImportError:
 def split_sentences_rule(text: str) -> List[str]:
     """
     规则算法分句
-    使用基于规则的算法处理缩写和边界情况
+    遵循第一性原理：
+    1. 遇到换行必须分割
+    2. 处理段内分句（根据标点符号）
     """
     if not text or not text.strip():
         return []
 
     sentences = []
-    start = 0
+    current_sentence = ''
     i = 0
     n = len(text)
 
     while i < n:
-        # 跳过引号后的内容，引号内的标点不应该分句
-        if text[i] == '"':
-            i = text.find('"', i + 1)
-            if i == -1:
-                i = n - 1
+        # 逐字符处理
+        char = text[i]
+        current_sentence += char
+        
+        # 规则1：遇到换行必须分割
+        if char == '\n':
+            if current_sentence.strip():
+                sentences.append(current_sentence)
+            current_sentence = ''
             i += 1
             continue
-
-        # 查找句子的结束标记（包括中文标点）
-        if text[i] not in '.!？。':
-            i += 1
-            continue
-
-        end_pos = i
-
-        # 检查是否是真句子结束
-
-        # 1. 检查后面是否还有字母
-        j = i + 1
-        while j < n and text[j].isalpha():
-            j += 1
-        if j > i + 1:
-            i = j - 1
-            i += 1
-            continue
-
-        # 2. 检查是否是省略号 "..." 或 "……"
-        if (i + 2 < n and text[i+1] == '.' and text[i+2] == '.') or \
-           (i + 1 < n and text[i+1] == '…'):
-            i += 3 if text[i+1] == '.' else 2
-            continue
-
-        # 3. 检查点号前是否是已知缩写
-        word_start = i - 1
-        while word_start >= start and not text[word_start].isspace():
-            word_start -= 1
-        word_start += 1
-
-        word = text[word_start:i].lower()
-
-        if word in ENGLISH_ABBREVIATIONS:
-            i += 1
-            continue
-
-        # 检查是否是单个大写字母+点
-        if re.match(r'^[a-zA-Z]$', text[word_start:i]):
-            i += 1
-            continue
-
-        # 4. 检查后面是否是大写字母（新句子开始）或换行
-        j = i + 1
-        while j < n and text[j].isspace():
-            j += 1
-
-        if j < n:
-            next_char = text[j]
-            if not next_char.isupper() and next_char != '"' and not next_char.isdigit():
+        
+        # 规则2：处理段内分句（根据标点符号）
+        if char in '.!？。':
+            # 检查是否是真句子结束
+            
+            # 1. 检查是否是省略号 "..." 或 "……"
+            if (i + 2 < n and text[i+1] == '.' and text[i+2] == '.') or \
+               (i + 1 < n and text[i+1] == '…'):
+                i += 3 if text[i+1] == '.' else 2
+                continue
+            
+            # 2. 检查点号前是否是已知缩写
+            word_start = i - 1
+            while word_start >= 0 and not text[word_start].isspace():
+                word_start -= 1
+            word_start += 1
+            
+            word = text[word_start:i].lower()
+            if word in ENGLISH_ABBREVIATIONS:
                 i += 1
                 continue
-
+            
+            # 3. 检查是否是单个大写字母+点
+            if re.match(r'^[a-zA-Z]$', text[word_start:i]):
+                i += 1
+                continue
+            
+            # 4. 检查后面是否是大写字母（新句子开始）
+            j = i + 1
+            while j < n and text[j].isspace():
+                j += 1
+            
+            if j < n:
+                next_char = text[j]
+                # 检查是否是引号，然后是大写字母
+                if next_char == '"' and j + 1 < n and text[j + 1].isupper():
+                    pass  # 这是一个新句子的开始
+                elif not next_char.isupper() and next_char != '"' and not next_char.isdigit():
+                    i += 1
+                    continue
+            
+            # 是真句子结束，分割句子
+            if current_sentence.strip():
+                sentences.append(current_sentence)
+            current_sentence = ''
+        
         i += 1
-        # 保留原始文本，包括换行符和空格
-        sentence = text[start:i]
-        if sentence.strip():
-            sentences.append(sentence)
-
-        start = i
-
-    if start < n:
-        sentence = text[start:]
-        if sentence.strip():
-            sentences.append(sentence)
-
+    
+    # 处理最后一个句子
+    if current_sentence.strip():
+        sentences.append(current_sentence)
+    
     return sentences
 
 
@@ -855,33 +847,7 @@ async def analyze_text_stream_endpoint(request: AnalyzeRequest):
         "X-Accel-Buffering": "no"
     })
 
-@app.post("/annotate")
-async def annotate_text_endpoint(request: AnalyzeRequest):
-    api_key = get_siliconflow_api_key()
-    if not api_key:
-        raise HTTPException(status_code=500, detail="Missing SILICONFLOW_API_KEY (env or config.ini)")
 
-    annotated_html = await annotate_text(api_key, request.text, request.model)
-    
-    # 导入fix_annotated_html函数
-    from llm_service import fix_annotated_html
-    
-    # 修复标注HTML，确保mark标签之间有空格
-    fixed_annotated_html = fix_annotated_html(annotated_html)
-    
-    structured_annotations = parse_annotations(fixed_annotated_html)
-    
-    # 导入create_readable_annotations函数
-    from llm_service import create_readable_annotations
-    
-    # 生成标注列表
-    annotation_list = create_readable_annotations(structured_annotations)
-    
-    # 返回包含标记HTML和标注列表的响应
-    return {
-        "annotated_html": fixed_annotated_html,
-        "annotation_list": annotation_list
-    }
 
 
 if __name__ == "__main__":
