@@ -633,7 +633,7 @@ async function splitIntoCards(text) {
   const response = await fetchJson("/split", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, language: "en", method: "r" })
+    body: JSON.stringify({ text, language: "en", method: "n" })
   });
   const sentences = Array.isArray(response.sentences) ? response.sentences : [];
   return sentences.filter(Boolean).map((sentence) => sentenceToCard(sentence));
