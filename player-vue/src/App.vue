@@ -20,6 +20,7 @@
                     class="content-sentence"
                     :class="sentenceClass(index)"
                     v-html="item.english.replace(/\n/g, '<br/>')"
+                    @click="analyzeSentenceOnClick(index)"
                   ></span>
                 </div>
               </div>
@@ -27,6 +28,17 @@
             <template v-else>
               <p class="english-sentence empty-copy">选择书籍和章节后，将从 service 服务加载文本并拆句播放。</p>
             </template>
+          </div>
+
+          <!-- 解析对话框 -->
+          <div v-if="showAnalyzeDialog" class="dialog-overlay" @click="showAnalyzeDialog = false">
+            <div class="dialog-content panel" @click.stop>
+              <div class="dialog-header">
+                <h3>{{ analyzeDialogTitle }}</h3>
+                <button class="dialog-close" @click="showAnalyzeDialog = false">&times;</button>
+              </div>
+              <div class="dialog-body" v-html="analyzeDialogContent"></div>
+            </div>
           </div>
 
           <div class="transport">
@@ -52,7 +64,6 @@
               </div>
               <div class="transport-center" v-show="!isFullscreen">
                 <button class="transport-button" type="button" @click="isBookSidebarOpen = !isBookSidebarOpen">📚</button>
-                <button class="transport-button" type="button" @click="annotateCurrentSentence" :disabled="!hasSentence || isAnnotating">标</button>
               </div>
               <div class="transport-right">
                 <div class="transport-controls">
@@ -181,13 +192,7 @@
             </div>
           </div>
 
-          <div class="settings-group">
-            <h3>解析设置</h3>
-            <div class="toggle-row">
-              <span>自动解析</span>
-              <button class="inline-switch" :class="{ active: autoAnalyze }" type="button" @click="toggleAutoAnalyze"></button>
-            </div>
-          </div>
+
 
           <div class="settings-group">
             <h3>外观</h3>
@@ -244,7 +249,6 @@ const isInitialLoading = ref(false);
 const isLoadingMore = ref(false);
 const errorMessage = ref("");
 const autoPlayNext = ref(true);
-const autoAnalyze = ref(false);
 const fontScaleLevel = ref("md");
 const mainStageRef = ref(null);
 const isPlaying = ref(false);
@@ -346,7 +350,12 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(mainStageRef, {
 });
 const analyzeResult = ref(null);
 const isAnalyzing = ref(false);
-const isAnnotating = ref(false);
+const showAnalyzeDialog = ref(false);
+const analyzeDialogContent = ref('');
+const analyzeDialogTitle = ref('');
+const selectedSentenceIndex = ref(-1);
+// 解析缓存
+const analyzeCache = ref(new Map());
 
 let advanceTimer = null;
 let currentAudioUrl = null;
@@ -431,7 +440,6 @@ watch(
       playbackRate,
       ttsEnabled,
       autoPlayNext,
-      autoAnalyze,
       fontScaleLevel
       // 移除对chapterSentences的监听，避免标记变化时触发存储
       // () => chapterSentences.value
@@ -456,11 +464,7 @@ watch(fontScaleLevel, () => {
   nextTick(() => centerCurrentSentence(true));
 });
 
-watch(currentSentenceIndex, () => {
-  if (autoAnalyze.value && hasSentence.value) {
-    analyzeSentence();
-  }
-});
+
 
 onMounted(async () => {
   window.addEventListener("pointerdown", onWindowPointerDown);
@@ -1059,10 +1063,50 @@ function toggleTts() {
   if (isPlaying.value) replayFromCurrent();
 }
 
-function toggleAutoAnalyze() {
-  autoAnalyze.value = !autoAnalyze.value;
-  if (autoAnalyze.value && hasSentence.value) {
-    analyzeSentence();
+async function analyzeSentenceOnClick(index) {
+  if (!chapterSentences.value[index] || isAnalyzing.value) return;
+  selectedSentenceIndex.value = index;
+  analyzeDialogTitle.value = '句子解析';
+  const originalSentence = chapterSentences.value[index].english;
+  analyzeDialogContent.value = marked.parse(`### 原句\n${originalSentence}\n`);
+  showAnalyzeDialog.value = true;
+  
+  // 检查缓存
+  const cacheKey = originalSentence;
+  if (analyzeCache.value.has(cacheKey)) {
+    const cachedContent = analyzeCache.value.get(cacheKey);
+    analyzeDialogContent.value = marked.parse(`### 原句\n${originalSentence}\n${cachedContent}`);
+    return;
+  }
+  
+  isAnalyzing.value = true;
+  
+  try {
+    const text = originalSentence;
+    const response = await fetch(buildApiUrl("/analyze_stream"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    if (!response.ok) throw new Error("解析服务调用失败");
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+    let buffer = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      analyzeDialogContent.value = marked.parse(`### 原句\n${originalSentence}\n${buffer}`);
+    }
+    
+    // 缓存结果
+    analyzeCache.value.set(cacheKey, buffer);
+  } catch (error) {
+    handleError(error);
+  } finally {
+    isAnalyzing.value = false;
   }
 }
 
@@ -1089,7 +1133,7 @@ async function analyzeSentence() {
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       if (buffer.trim().length > 0) {
-        analyzeResult.value = { raw: buffer };
+        analyzeResult.value = { raw: buffer, html: marked.parse(buffer) };
       }
     }
   } catch (error) {
@@ -1137,46 +1181,7 @@ function buildTtsRequestUrl(text) {
   return buildApiUrl(`/tts?text=${encodeURIComponent(normalizedText)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`);
 }
 
-async function annotateCurrentSentence() {
-  if (!hasSentence.value || isAnnotating.value) return;
-  isAnnotating.value = true;
-  
-  try {
-    // 如果正在朗读，停止朗读
-    if (isPlaying.value) {
-      stopPlayback();
-    }
-    
-    // 调用annotate接口
-    const text = currentSentence.value.english;
-    const response = await fetchJson("/annotate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text })
-    });
-    
-    // 打印annotated_html
-    console.log("Annotated HTML：");
-    console.log(response.annotated_html);
-    
-    // 更新当前句子的english属性为annotated_html
-    if (response.annotated_html) {
-      chapterSentences.value[currentSentenceIndex.value].english = response.annotated_html;
-    }
-    
-    // 打印ai标记的文本
-    if (response.annotation_list && response.annotation_list.annotations) {
-      console.log("AI标记的文本：");
-      response.annotation_list.annotations.forEach((annotation, index) => {
-        console.log(`${index + 1}. ${annotation.content} (类型: ${annotation.type}, 风险: ${annotation.risk})`);
-      });
-    }
-  } catch (error) {
-    handleError(error);
-  } finally {
-    isAnnotating.value = false;
-  }
-}
+
 
 function loadReadingState() {
   try {
@@ -1215,7 +1220,6 @@ function applySavedReadingState(savedState) {
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   ttsEngine.value = savedState.ttsEngine === "pocket" ? "pocket" : "edge";
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
-  autoAnalyze.value = typeof savedState.autoAnalyze === "boolean" ? savedState.autoAnalyze : autoAnalyze.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   contentScrollTop.value = Number(savedState.contentScrollTop || 0);
   
@@ -1248,7 +1252,7 @@ function persistReadingState() {
     ttsEnabled: ttsEnabled.value,
     ttsEngine: ttsEngine.value,
     autoPlayNext: autoPlayNext.value,
-    autoAnalyze: autoAnalyze.value,
+
     fontScaleLevel: fontScaleLevel.value,
     contentScrollTop: contentScrollTop.value
   };

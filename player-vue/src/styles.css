@@ -64,13 +64,31 @@ button { border: 0; color: inherit; background: none; }
 .top-center { display: flex; justify-content: center; }
 .top-selects { gap: 12px; }
 
-.chapter-select, .ghost-button, .select-pill, .mode-badge, .rate-chip,
+.ghost-button, .select-pill, .mode-badge, .rate-chip,
 .mode-toggle-button, .note-chip, .export-button, .tab-button, .theme-toggle button, .font-scale button, .rate-tab {
   border: 1px solid rgba(132, 141, 197, 0.18);
   background: rgba(255, 255, 255, 0.03);
 }
 
-.chapter-select { width: min(100%, 380px); padding: 14px 18px; border-radius: 14px; color: var(--text); outline: none; }
+.chapter-select {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(10, 10, 20, 0.98);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+
+.chapter-select:hover {
+  border-color: var(--primary);
+}
+
+.chapter-select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+}
 .chapter-select:disabled,
 .pill-switch:disabled,
 .transport-button:disabled,
@@ -907,6 +925,78 @@ body.fullscreen-mode .content-text {
   max-width: 100% !important;
 }
 
+/* 对话框样式 */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.dialog-close {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.dialog-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dialog-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* 隐藏滚动条 */
+.dialog-body::-webkit-scrollbar {
+  display: none;
+}
+
+.dialog-body {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 :fullscreen .transport-buttons,
 :-webkit-full-screen .transport-buttons,
 :-ms-fullscreen .transport-buttons,
@@ -915,15 +1005,4 @@ body.fullscreen-mode .transport-buttons {
   margin: 16px 0 !important;
 }
 
-/* 标注样式 */
-.content-text mark {
-  display: inline;
-  text-decoration: underline !important;
-  text-decoration-color: var(--accent) !important;
-  text-decoration-thickness: 2px !important;
-  text-underline-offset: 4px !important;
-  background-color: transparent !important;
-  color: inherit !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
+
