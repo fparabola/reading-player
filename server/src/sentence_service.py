@@ -472,6 +472,9 @@ def split_sentences_rule(text: str) -> List[str]:
 def split_sentences_nltk(text: str) -> List[str]:
     """
     使用nltk分句
+    处理逻辑：
+    1. 先用\n分段落（保留换行符，不要丢任何字符）
+    2. 按顺序对每一段进行ntlk分句
     """
     if not NLTK_AVAILABLE:
         raise HTTPException(
@@ -482,8 +485,28 @@ def split_sentences_nltk(text: str) -> List[str]:
     if not text or not text.strip():
         return []
 
-    # 使用nltk的sent_tokenize
-    sentences = sent_tokenize(text)
+    # 1. 先用\n分段落（保留换行符，不要丢任何字符）
+    paragraphs = []
+    current_paragraph = ''
+    for char in text:
+        current_paragraph += char
+        if char == '\n':
+            paragraphs.append(current_paragraph)
+            current_paragraph = ''
+    if current_paragraph:
+        paragraphs.append(current_paragraph)
+
+    # 2. 按顺序对每一段进行ntlk分句
+    sentences = []
+    for paragraph in paragraphs:
+        if paragraph.strip():
+            # 对每一段进行ntlk分句
+            paragraph_sentences = sent_tokenize(paragraph)
+            sentences.extend(paragraph_sentences)
+        else:
+            # 保留空段落
+            sentences.append(paragraph)
+
     return sentences
 
 
