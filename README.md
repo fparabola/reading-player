@@ -1,6 +1,6 @@
-# TXT Player
+# Reading Player
 
-TXT Player 是一个基于 Web 的文本播放器，支持文本分句、TTS 朗读、进度控制等功能，适用于语言学习、有声阅读等场景。
+Reading Player 是一个基于 Web 的文本播放器，支持文本分句、TTS 朗读、进度控制等功能，适用于语言学习、有声阅读等场景。
 
 ## 功能特性
 
