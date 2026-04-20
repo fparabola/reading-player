@@ -150,12 +150,10 @@ def get_pocket_tts_model():
         if _POCKET_TTS_MODEL is None:
             try:
                 from pocket_tts import TTSModel
-            except ImportError as exc:
-                raise RuntimeError(
-                    "pocket-tts is not installed. Run `pip install pocket-tts` in the server environment."
-                ) from exc
-
-            _POCKET_TTS_MODEL = TTSModel.load_model()
+                _POCKET_TTS_MODEL = TTSModel.load_model()
+            except ImportError:
+                # pocket-tts 未安装，设置为 None
+                _POCKET_TTS_MODEL = None
 
     return _POCKET_TTS_MODEL
 
@@ -170,8 +168,9 @@ def get_pocket_tts_voice_state(voice: str):
         cached_state = _POCKET_TTS_VOICE_STATES.get(normalized_voice)
         if cached_state is None:
             model = get_pocket_tts_model()
-            cached_state = model.get_state_for_audio_prompt(normalized_voice)
-            _POCKET_TTS_VOICE_STATES[normalized_voice] = cached_state
+            if model is not None:
+                cached_state = model.get_state_for_audio_prompt(normalized_voice)
+                _POCKET_TTS_VOICE_STATES[normalized_voice] = cached_state
 
     return cached_state
 
@@ -212,17 +211,56 @@ def synthesize_pocket_tts_sync(text: str, voice: str) -> bytes:
             pass
 
     model = get_pocket_tts_model()
-    voice_state = get_pocket_tts_voice_state(normalized_voice)
-    audio = model.generate_audio(voice_state, text)
-    wav_bytes = pcm_tensor_to_wav_bytes(audio, model.sample_rate)
-
-    if wav_bytes:
+    if model is not None:
+        # pocket-tts 可用
         try:
-            cache_path.write_bytes(wav_bytes)
+            voice_state = get_pocket_tts_voice_state(normalized_voice)
+            audio = model.generate_audio(voice_state, text)
+            wav_bytes = pcm_tensor_to_wav_bytes(audio, model.sample_rate)
+
+            if wav_bytes:
+                try:
+                    cache_path.write_bytes(wav_bytes)
+                except Exception:
+                    pass
+
+            return wav_bytes
+        except Exception:
+            # pocket-tts 执行失败，fallback 到 edge-tts
+            pass
+    
+    # pocket-tts 不可用，fallback 到 edge-tts
+    import asyncio
+    from edge_tts import Communicate
+    
+    # 生成 edge-tts 缓存文件名
+    edge_cache_filename = f"{md5_hash}_{normalized_voice.replace(' ', '_')}_+0pc.mp3"
+    edge_cache_path = TTS_CACHE_DIR / edge_cache_filename
+    
+    if edge_cache_path.exists():
+        try:
+            return edge_cache_path.read_bytes()
         except Exception:
             pass
-
-    return wav_bytes
+    
+    # 使用 edge-tts 生成音频
+    async def generate_edge_tts():
+        communicator = Communicate(text=text, voice="en-US-AriaNeural", rate="+0%")
+        audio_bytes = bytearray()
+        async for chunk in communicator.stream():
+            if chunk.get("type") == "audio":
+                audio_bytes.extend(chunk.get("data", b""))
+        return bytes(audio_bytes)
+    
+    audio_bytes = asyncio.run(generate_edge_tts())
+    
+    if audio_bytes:
+        try:
+            edge_cache_path.write_bytes(audio_bytes)
+        except Exception:
+            pass
+    
+    return audio_bytes
 
 def chapter_sort_key(name: str) -> tuple:
     match = re.search(r"\d+", name)
