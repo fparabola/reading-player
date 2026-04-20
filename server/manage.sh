@@ -16,20 +16,20 @@ read -p "请选择 Please select (0-5): " choice
 
 case $choice in
   1)
-    python3 service_manager.py start
+    python3 src/service_manager.py start
     ;;
   2)
-    python3 service_manager.py stop
+    python3 src/service_manager.py stop
     ;;
   3)
-    python3 service_manager.py restart
+    python3 src/service_manager.py restart
     ;;
   4)
-    python3 service_manager.py status
+    python3 src/service_manager.py status
     ;;
   5)
-    python3 service_manager.py logs
-    ;;
+    python3 src/service_manager.py logs
+    ;;;
   0)
     exit
     ;;
