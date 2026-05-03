@@ -190,6 +190,21 @@
                 <option value="pocket">Pocket TTS</option>
               </select>
             </div>
+            <div class="toggle-row" v-if="ttsEngine === 'edge'">
+              <span>Edge TTS 音色</span>
+              <select v-model="edgeTtsVoice" class="chapter-select">
+                <option value="en-US-AriaNeural">Aria (默认女声)</option>
+                <option value="en-US-ChristopherNeural">Christopher (男声)</option>
+                <option value="en-US-EricNeural">Eric (男声)</option>
+                <option value="en-US-GuyNeural">Guy (男声)</option>
+                <option value="en-US-JennyNeural">Jenny (女声)</option>
+                <option value="en-US-MichelleNeural">Michelle (女声)</option>
+                <option value="en-US-RogerNeural">Roger (男声)</option>
+                <option value="en-US-SteffanNeural">Steffan (男声)</option>
+                <option value="en-GB-LibbyNeural">Libby (英国英文女声)</option>
+                <option value="en-GB-RyanNeural">Ryan (英国英文男声)</option>
+              </select>
+            </div>
           </div>
 
 
@@ -228,7 +243,7 @@ import { marked } from "marked";
 const DEFAULT_MIN_SIZE = 500;
 const DEFAULT_BOOK = "哈利波特1-7英文原版";
 const STORAGE_KEY = "player_vue_reading_state";
-const API_CANDIDATES = ["http://192.168.2.178:8000"];
+const API_CANDIDATES = ["http://localhost:8000"];
 
 const FONT_SCALE_MAP = {
   sm: { "--player-english-size": "14px", "--player-empty-size": "14px" },
@@ -254,6 +269,7 @@ const mainStageRef = ref(null);
 const isPlaying = ref(false);
 const ttsEnabled = ref(true);
 const ttsEngine = ref("pocket");
+const edgeTtsVoice = ref("en-US-AriaNeural");
 const playbackRate = ref(1.0);
 const rateOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
 const CONTENT_SCROLL_EDGE_THRESHOLD = 48;
@@ -439,6 +455,8 @@ watch(
       chapterFinished,
       playbackRate,
       ttsEnabled,
+      ttsEngine,
+      edgeTtsVoice,
       autoPlayNext,
       fontScaleLevel
       // 移除对chapterSentences的监听，避免标记变化时触发存储
@@ -1186,7 +1204,7 @@ function buildTtsRequestUrl(text) {
     return buildApiUrl(`/tts/pocket?text=${encodeURIComponent(normalizedText)}&voice=alba`);
   }
 
-  const voice = detectLanguage(normalizedText) === "zh" ? "zh-CN-XiaoxiaoNeural" : "en-US-AriaNeural";
+  const voice = detectLanguage(normalizedText) === "zh" ? "zh-CN-XiaoxiaoNeural" : edgeTtsVoice.value;
   const rate = formatTtsRate(playbackRate.value);
   return buildApiUrl(`/tts?text=${encodeURIComponent(normalizedText)}&voice=${encodeURIComponent(voice)}&rate=${encodeURIComponent(rate)}`);
 }
@@ -1229,6 +1247,7 @@ function applySavedReadingState(savedState) {
   playbackRate.value = clampPlaybackRate(savedState.playbackRate);
   ttsEnabled.value = typeof savedState.ttsEnabled === "boolean" ? savedState.ttsEnabled : ttsEnabled.value;
   ttsEngine.value = savedState.ttsEngine === "pocket" ? "pocket" : "edge";
+  edgeTtsVoice.value = savedState.edgeTtsVoice || edgeTtsVoice.value;
   autoPlayNext.value = typeof savedState.autoPlayNext === "boolean" ? savedState.autoPlayNext : autoPlayNext.value;
   fontScaleLevel.value = normalizeFontScaleLevel(savedState.fontScaleLevel);
   contentScrollTop.value = Number(savedState.contentScrollTop || 0);
@@ -1261,6 +1280,7 @@ function persistReadingState() {
     playbackRate: playbackRate.value,
     ttsEnabled: ttsEnabled.value,
     ttsEngine: ttsEngine.value,
+    edgeTtsVoice: edgeTtsVoice.value,
     autoPlayNext: autoPlayNext.value,
 
     fontScaleLevel: fontScaleLevel.value,
