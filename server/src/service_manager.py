@@ -45,8 +45,8 @@ def start_service():
     """启动服务"""
     pid = get_pid()
     if pid and is_running(pid):
-        print(f"服务已在运行中 (PID: {pid})")
-        print(f"API: http://localhost:8000")
+        print("服务已在运行中 (PID: %s)" % pid)
+        print("API: http://localhost:8000")
         return
 
     print("启动服务...")
@@ -74,9 +74,9 @@ def start_service():
     time.sleep(3)
 
     if is_running(process.pid):
-        print(f"服务启动成功 (PID: {process.pid})")
-        print(f"API地址: http://localhost:8000")
-        print(f"API文档: http://localhost:8000/docs")
+        print("服务启动成功 (PID: %s)" % process.pid)
+        print("API地址: http://localhost:8000")
+        print("API文档: http://localhost:8000/docs")
     else:
         print("服务启动失败")
         PID_FILE.unlink(missing_ok=True)
@@ -94,7 +94,7 @@ def stop_service():
         PID_FILE.unlink(missing_ok=True)
         return
 
-    print(f"停止服务 (PID: {pid})...")
+    print("停止服务 (PID: %s)..." % pid)
     
     # 根据平台选择停止方式
     if sys.platform == 'win32':
@@ -125,8 +125,8 @@ def show_status():
     """显示服务状态"""
     pid = get_pid()
     if pid and is_running(pid):
-        print(f"状态: 运行中 ● PID={pid}")
-        print(f"API: http://localhost:8000")
+        print("状态: 运行中 ● PID=%s" % pid)
+        print("API: http://localhost:8000")
         return
     print("状态: 未运行")
 
@@ -144,7 +144,7 @@ def show_logs():
                 for line in lines[-50:]:
                     print(line.rstrip())
         except Exception as e:
-            print(f"读取日志失败: {e}")
+            print("读取日志失败: %s" % e)
     else:
         print("日志文件不存在")
 
