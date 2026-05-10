@@ -661,11 +661,8 @@ async def split_text(request: SentenceRequest):
 
 @app.get("/health")
 async def health_check():
-    """健康检查"""
-    return {
-        "status": "healthy",
-        "nltk_available": NLTK_AVAILABLE
-    }
+    """健康检查 - 仅测试服务是否可用"""
+    return {"status": "healthy"}
 
 
 @app.get("/books", response_model=BooksResponse)
