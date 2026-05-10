@@ -602,7 +602,7 @@ def split_sentences(text: str, language: str, method: str = "r") -> tuple[List[s
 
     # 选择算法
     if method == 'n' or method == 'nltk':
-        if NLTK_AVAILABLE:
+        if check_nltk_available():
             return split_sentences_nltk(text), 'nltk'
         else:
             # nltk不可用，降级到规则算法
@@ -618,7 +618,7 @@ async def root():
     return {
         "service": "Sentence Splitter API",
         "version": "2.0.0",
-        "nltk_available": NLTK_AVAILABLE,
+        "nltk_available": check_nltk_available(),
         "methods": {
             "rule": "Rule-based algorithm (default)",
             "nltk": "NLTK tokenizer (install nltk first)"
