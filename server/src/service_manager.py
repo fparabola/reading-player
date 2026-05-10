@@ -27,12 +27,11 @@ def is_running(pid):
     if not pid:
         return False
     try:
-        result = subprocess.run(
-            ['tasklist', '/FI', f'PID eq {pid}', '/NH'],
-            capture_output=True, text=True
-        ) if sys.platform == 'win32' else None
-
         if sys.platform == 'win32':
+            result = subprocess.run(
+                ['tasklist', '/FI', 'PID eq %s' % pid, '/NH'],
+                capture_output=True, text=True
+            )
             return str(pid) in result.stdout
         else:
             import os
