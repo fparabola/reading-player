@@ -417,24 +417,33 @@ ENGLISH_ABBREVIATIONS = {
     'vol', 'chap', 'p', 'pp', 'et', 'al', 'ps', 'pps'
 }
 
-# nltk模块是否可用
-NLTK_AVAILABLE = False
-try:
-    from nltk.tokenize import sent_tokenize
-    NLTK_AVAILABLE = True
-    # 下载nltk数据（如果未下载）
-    import nltk
+# nltk模块是否可用（延迟加载）
+_NLTK_AVAILABLE = None
+
+def check_nltk_available() -> bool:
+    """延迟检查nltk是否可用"""
+    global _NLTK_AVAILABLE
+    if _NLTK_AVAILABLE is not None:
+        return _NLTK_AVAILABLE
+    
     try:
-        nltk.data.find('tokenizers/punkt')
-        nltk.data.find('tokenizers/punkt_tab')
-    except:
+        from nltk.tokenize import sent_tokenize
+        _NLTK_AVAILABLE = True
+        # 下载nltk数据（如果未下载）
+        import nltk
         try:
-            nltk.download('punkt', quiet=True)
-            nltk.download('punkt_tab', quiet=True)
+            nltk.data.find('tokenizers/punkt')
+            nltk.data.find('tokenizers/punkt_tab')
         except:
-            pass
-except ImportError:
-    pass
+            try:
+                nltk.download('punkt', quiet=True)
+                nltk.download('punkt_tab', quiet=True)
+            except:
+                pass
+    except ImportError:
+        _NLTK_AVAILABLE = False
+    
+    return _NLTK_AVAILABLE
 
 
 def split_sentences_rule(text: str) -> List[str]:
@@ -526,11 +535,13 @@ def split_sentences_nltk(text: str) -> List[str]:
     1. 先用\n分段落（保留换行符，不要丢任何字符）
     2. 按顺序对每一段进行ntlk分句
     """
-    if not NLTK_AVAILABLE:
+    if not check_nltk_available():
         raise HTTPException(
             status_code=400,
             detail="nltk is not available. Please install nltk: pip install nltk"
         )
+    
+    from nltk.tokenize import sent_tokenize
 
     if not text or not text.strip():
         return []
