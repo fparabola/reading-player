@@ -269,6 +269,15 @@ def chapter_sort_key(name: str) -> tuple:
     return (1, name.lower())
 
 
+class ChapterInfo(BaseModel):
+    name: str  # 章节名称（文件名）
+
+
+class BookInfo(BaseModel):
+    name: str  # 书名（文件夹名）
+    chapters: List[ChapterInfo]  # 章节列表
+
+
 def get_resource_books() -> List[BookInfo]:
     """
     获取资源目录中的所有书籍和章节
@@ -354,15 +363,6 @@ class SentenceResponse(BaseModel):
     sentences: List[str]
     count: int
     method: str  # 返回实际使用的算法
-
-
-class ChapterInfo(BaseModel):
-    name: str  # 章节名称（文件名）
-
-
-class BookInfo(BaseModel):
-    name: str  # 书名（文件夹名）
-    chapters: List[ChapterInfo]  # 章节列表
 
 
 class BooksResponse(BaseModel):
