@@ -21,7 +21,6 @@ from pathlib import Path
 import threading
 from typing import List, Optional
 import uvicorn
-import edge_tts
 import json
 import numpy as np
 import requests
@@ -29,9 +28,21 @@ import traceback
 import httpx
 import sys
 import wave
+import asyncio
 
 # 添加src目录到Python路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# 延迟导入 edge_tts，避免启动时卡住
+_edge_tts = None
+
+def get_edge_tts():
+    """延迟获取 edge_tts 模块"""
+    global _edge_tts
+    if _edge_tts is None:
+        import edge_tts
+        _edge_tts = edge_tts
+    return _edge_tts
 
 from llm_service import analyze_text_stream
 from config_helper import config_helper
@@ -122,7 +133,8 @@ async def synthesize_tts(text: str, voice: str, rate: str) -> bytes:
             pass
     
     # 缓存不存在，生成新的TTS
-    communicator = edge_tts.Communicate(text=text, voice=voice, rate=rate)
+    edge_tts_module = get_edge_tts()
+    communicator = edge_tts_module.Communicate(text=text, voice=voice, rate=rate)
     audio_bytes = bytearray()
     async for chunk in communicator.stream():
         if chunk.get("type") == "audio":
@@ -230,8 +242,6 @@ def synthesize_pocket_tts_sync(text: str, voice: str) -> bytes:
             pass
     
     # pocket-tts 不可用，fallback 到 edge-tts
-    import asyncio
-    from edge_tts import Communicate
     
     # 生成 edge-tts 缓存文件名
     edge_cache_filename = f"{md5_hash}_{normalized_voice.replace(' ', '_')}_+0pc.mp3"
@@ -244,8 +254,10 @@ def synthesize_pocket_tts_sync(text: str, voice: str) -> bytes:
             pass
     
     # 使用 edge-tts 生成音频
+    edge_tts_module = get_edge_tts()
+    
     async def generate_edge_tts():
-        communicator = Communicate(text=text, voice="en-US-AriaNeural", rate="+0%")
+        communicator = edge_tts_module.Communicate(text=text, voice="en-US-AriaNeural", rate="+0%")
         audio_bytes = bytearray()
         async for chunk in communicator.stream():
             if chunk.get("type") == "audio":
