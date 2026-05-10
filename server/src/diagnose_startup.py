@@ -53,13 +53,13 @@ def main():
         print("尝试导入主服务模块...")
         start_time = time.time()
         try:
-            import src.sentence_service
+            import sentence_service
             elapsed = time.time() - start_time
-            print(f"✓ src.sentence_service - {elapsed:.2f}s")
+            print(f"✓ sentence_service - {elapsed:.2f}s")
             print("服务模块导入成功!")
         except Exception as e:
             elapsed = time.time() - start_time
-            print(f"✗ src.sentence_service - {elapsed:.2f}s")
+            print(f"✗ sentence_service - {elapsed:.2f}s")
             print(f"错误: {e}")
             import traceback
             traceback.print_exc()
